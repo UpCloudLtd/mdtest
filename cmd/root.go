@@ -10,7 +10,7 @@ var (
 		Use:   "mdtest",
 		Short: "A testing tool with markdown testcases",
 		Long:  "Tool for combining examples and test cases. Parses markdown files for test steps and uses these to test command line applications.",
-		Args:  cobra.ArbitraryArgs,
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
 			cmd.SilenceErrors = true
