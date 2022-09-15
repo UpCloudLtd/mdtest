@@ -6,9 +6,26 @@ import (
 	"os"
 	"strings"
 
+	"github.com/UpCloudLtd/mdtest/globals"
 	"github.com/UpCloudLtd/progress"
 	"github.com/UpCloudLtd/progress/messages"
 )
+
+type testStatus struct {
+	TestId string
+	Env    []string
+}
+
+func NewTestStatus() testStatus {
+	id := testId()
+	return testStatus{
+		Env: append(os.Environ(),
+			"MDTEST_TESTID="+id,
+			"MDTEST_VERSION="+globals.Version,
+		),
+		TestId: id,
+	}
+}
 
 type TestResult struct {
 	Success      bool
@@ -46,13 +63,18 @@ func parse(path string) ([]Step, error) {
 
 func getFailureDetails(test TestResult) string {
 	details := "Failures:"
-	for _, res := range test.Results {
+	for i, res := range test.Results {
 		if err := res.Error; err != nil {
-			details += "\n- " + err.Error()
+			details += fmt.Sprintf("\n\nStep %d: %s", i+1, err.Error())
+
+			if res.Output != "" {
+				details += "\n\nOutput:\n\n"
+				details += res.Output
+			}
 		}
 	}
 
-	details += fmt.Sprintf("\n%d of %d test steps failed", test.FailureCount, test.StepsCount)
+	details += fmt.Sprintf("\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount)
 
 	return details
 }
@@ -73,13 +95,14 @@ func Execute(path string, testLog *progress.Progress) TestResult {
 	testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
 	test := TestResult{StepsCount: len(steps)}
+	status := testStatus{Env: os.Environ(), TestId: testId()}
 	for i, step := range steps {
 		testLog.Push(messages.Update{
 			Key:             path,
 			ProgressMessage: fmt.Sprintf("(Step %d of %d)", i+1, len(steps)),
 		})
 
-		res := step.Execute()
+		res := step.Execute(&status)
 		if res.Success {
 			test.SuccessCount++
 		} else {

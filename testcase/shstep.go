@@ -2,6 +2,7 @@ package testcase
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"strconv"
 )
@@ -11,14 +12,35 @@ type shStep struct {
 	exitCode int
 }
 
-func (s shStep) Execute() StepResult {
-	output, err := exec.Command("sh", "-c", s.script).CombinedOutput()
+func unexpectedExitCode(expected, got int) error {
+	return fmt.Errorf("expected exit code %d, got %d", expected, got)
+}
+
+func (s shStep) Execute(t *testStatus) StepResult {
+	cmd := exec.Command("sh", "-xec", s.script)
+	cmd.Env = t.Env
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		var exit *exec.ExitError
-		if isExit := errors.As(err, &exit); isExit && exit.ExitCode() != s.exitCode || !isExit {
+		isExit := errors.As(err, &exit)
+		if !isExit {
 			return StepResult{
 				Success: false,
-				Error:   err,
+				Error:   fmt.Errorf("unexpected error (%s)", err.Error()),
+				Output:  string(output),
+			}
+		} else if got := exit.ExitCode(); got != s.exitCode {
+			return StepResult{
+				Success: false,
+				Error:   unexpectedExitCode(s.exitCode, got),
+				Output:  string(output),
+			}
+		}
+	} else {
+		if s.exitCode != 0 {
+			return StepResult{
+				Success: false,
+				Error:   unexpectedExitCode(s.exitCode, 0),
 				Output:  string(output),
 			}
 		}

@@ -13,7 +13,7 @@ type StepResult struct {
 }
 
 type Step interface {
-	Execute() StepResult
+	Execute(*testStatus) StepResult
 }
 
 func parseOptions(optionsStr string) (string, map[string]string) {
