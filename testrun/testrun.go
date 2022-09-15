@@ -5,13 +5,17 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
+	"github.com/UpCloudLtd/mdtest/output"
 	"github.com/UpCloudLtd/mdtest/testcase"
 	"github.com/UpCloudLtd/progress"
 	"github.com/UpCloudLtd/progress/messages"
 )
 
 type RunResult struct {
+	Started      time.Time
+	Finished     time.Time
 	Success      bool
 	SuccessCount int
 	FailureCount int
@@ -69,7 +73,27 @@ func parseFilePaths(rawPaths []string, depth int) ([]string, []PathWarning) {
 	return paths, warnings
 }
 
+func PrintSummary(run RunResult) {
+	tests := output.Total(len(run.TestResults))
+	if run.SuccessCount > 0 {
+		tests = output.Passed(run.SuccessCount) + ", " + tests
+	}
+	if run.FailureCount > 0 {
+		tests = output.Failed(run.FailureCount) + ", " + tests
+	}
+
+	elapsed := fmt.Sprintf("%.3f s", run.Finished.Sub(run.Started).Seconds())
+
+	data := []output.SummaryItem{
+		{Key: "Tests", Value: tests},
+		{Key: "Elapsed", Value: elapsed},
+	}
+
+	fmt.Printf("\n%s", output.SummaryTable((data)))
+}
+
 func Execute(rawPaths []string) RunResult {
+	started := time.Now()
 	paths, warnings := parseFilePaths(rawPaths, 1)
 
 	testLog := progress.NewProgress(nil)
@@ -79,7 +103,7 @@ func Execute(rawPaths []string) RunResult {
 		testLog.Push(warning.Message())
 	}
 
-	run := RunResult{Success: true}
+	run := RunResult{Started: started, Success: true}
 	for _, path := range paths {
 		res := testcase.Execute(path, testLog)
 		if res.Success {
@@ -93,5 +117,8 @@ func Execute(rawPaths []string) RunResult {
 
 	testLog.Stop()
 	run.Success = run.FailureCount == 0
+	run.Finished = time.Now()
+
+	PrintSummary(run)
 	return run
 }
