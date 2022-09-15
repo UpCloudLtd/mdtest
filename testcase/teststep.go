@@ -55,6 +55,8 @@ func parseStep(scanner *bufio.Scanner) (Step, error) {
 	}
 
 	switch lang {
+	case "env":
+		return parseEnvStep(options, content)
 	case "sh":
 		return parseShStep(options, content)
 	default:
