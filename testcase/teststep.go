@@ -16,13 +16,33 @@ type Step interface {
 	Execute() StepResult
 }
 
+func parseOptions(optionsStr string) (string, map[string]string) {
+	optionsList := strings.Split(optionsStr, " ")
+	options := make(map[string]string)
+
+	lang := optionsList[0]
+	for _, option := range optionsList[1:] {
+		items := strings.SplitN(option, "=", 2)
+
+		key := items[0]
+		value := ""
+		if len(items) > 1 {
+			value = items[1]
+		}
+
+		options[key] = value
+	}
+
+	return lang, options
+}
+
 func parseStep(scanner *bufio.Scanner) (Step, error) {
 	line := scanner.Text()
 	if !strings.HasPrefix(line, "```") {
 		return nil, fmt.Errorf("current scanner position is not at start of a test step")
 	}
 
-	options := strings.Split(line[3:], " ")
+	lang, options := parseOptions(line[3:])
 
 	content := ""
 	for scanner.Scan() {
@@ -34,11 +54,10 @@ func parseStep(scanner *bufio.Scanner) (Step, error) {
 		content += line + "\n"
 	}
 
-	switch options[0] {
+	switch lang {
 	case "sh":
 		return parseShStep(options, content)
 	default:
 		return nil, nil
 	}
-
 }

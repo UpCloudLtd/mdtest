@@ -1,20 +1,26 @@
 package testcase
 
 import (
+	"errors"
 	"os/exec"
+	"strconv"
 )
 
 type shStep struct {
-	script string
+	script   string
+	exitCode int
 }
 
 func (s shStep) Execute() StepResult {
 	output, err := exec.Command("sh", "-c", s.script).CombinedOutput()
 	if err != nil {
-		return StepResult{
-			Success: false,
-			Error:   err,
-			Output:  string(output),
+		var exit *exec.ExitError
+		if isExit := errors.As(err, &exit); isExit && exit.ExitCode() != s.exitCode || !isExit {
+			return StepResult{
+				Success: false,
+				Error:   err,
+				Output:  string(output),
+			}
 		}
 	}
 
@@ -24,6 +30,8 @@ func (s shStep) Execute() StepResult {
 	}
 }
 
-func parseShStep(options []string, content string) (Step, error) {
-	return shStep{script: content}, nil
+func parseShStep(options map[string]string, content string) (Step, error) {
+	exitCode, _ := strconv.Atoi(options["exit_code"])
+
+	return shStep{script: content, exitCode: exitCode}, nil
 }
