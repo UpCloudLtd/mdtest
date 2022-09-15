@@ -35,8 +35,9 @@ func parse(path string) ([]Step, error) {
 			if err != nil {
 				return nil, err
 			}
-
-			steps = append(steps, step)
+			if step != nil {
+				steps = append(steps, step)
+			}
 		}
 	}
 
