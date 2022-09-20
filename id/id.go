@@ -1,25 +1,22 @@
 package id
 
 import (
+	"crypto/rand"
 	"encoding/base64"
-	"math/rand"
-	"time"
 )
 
-func withIdSuffix(input string) string {
-	rand.Seed(time.Now().Unix())
-
+func withIDSuffix(input string) string {
 	randBytes := make([]byte, 8)
-	rand.Read(randBytes)
+	_, _ = rand.Read(randBytes)
 	randStr := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(randBytes)
 
 	return input + randStr
 }
 
-func NewRunId() string {
-	return withIdSuffix("run_")
+func NewRunID() string {
+	return withIDSuffix("run_")
 }
 
-func NewTestId() string {
-	return withIdSuffix("test_")
+func NewTestID() string {
+	return withIDSuffix("test_")
 }

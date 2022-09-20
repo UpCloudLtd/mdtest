@@ -2,6 +2,7 @@ package testrun
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -16,10 +17,11 @@ import (
 
 type RunParameters struct {
 	NumberOfJobs int
+	OutputTarget io.Writer
 }
 
 type RunResult struct {
-	Id           string
+	ID           string
 	Started      time.Time
 	Finished     time.Time
 	Success      bool
@@ -79,7 +81,7 @@ func parseFilePaths(rawPaths []string, depth int) ([]string, []PathWarning) {
 	return paths, warnings
 }
 
-func PrintSummary(run RunResult) {
+func PrintSummary(target io.Writer, run RunResult) {
 	tests := output.Total(len(run.TestResults))
 	if run.SuccessCount > 0 {
 		tests = output.Passed(run.SuccessCount) + ", " + tests
@@ -95,7 +97,7 @@ func PrintSummary(run RunResult) {
 		{Key: "Elapsed", Value: elapsed},
 	}
 
-	fmt.Printf("\n%s", output.SummaryTable((data)))
+	fmt.Fprintf(target, "\n%s", output.SummaryTable((data)))
 }
 
 func Execute(rawPaths []string, params RunParameters) RunResult {
@@ -106,11 +108,11 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 	testLog.Start()
 
 	for _, warning := range warnings {
-		testLog.Push(warning.Message())
+		_ = testLog.Push(warning.Message())
 	}
 
 	run := RunResult{
-		Id:      id.NewRunId(),
+		ID:      id.NewRunID(),
 		Started: started,
 		Success: true,
 	}
@@ -120,6 +122,6 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 	run.Success = run.FailureCount == 0
 	run.Finished = time.Now()
 
-	PrintSummary(run)
+	PrintSummary(params.OutputTarget, run)
 	return run
 }

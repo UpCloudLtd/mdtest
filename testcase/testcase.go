@@ -19,9 +19,9 @@ type testStatus struct {
 func NewTestStatus(params TestParameters) testStatus {
 	return testStatus{
 		Env: append(os.Environ(),
-			fmt.Sprintf("MDTEST_JOBID=%d", params.JobId),
-			"MDTEST_RUNID="+params.RunId,
-			"MDTEST_TESTID="+params.TestId,
+			fmt.Sprintf("MDTEST_JOBID=%d", params.JobID),
+			"MDTEST_RUNID="+params.RunID,
+			"MDTEST_TESTID="+params.TestID,
 			"MDTEST_VERSION="+globals.Version,
 		),
 		Params: params,
@@ -29,9 +29,9 @@ func NewTestStatus(params TestParameters) testStatus {
 }
 
 type TestParameters struct {
-	JobId   int
-	RunId   string
-	TestId  string
+	JobID   int
+	RunID   string
+	TestID  string
 	TestLog *progress.Progress
 }
 
@@ -47,7 +47,7 @@ type TestResult struct {
 func parse(path string) ([]Step, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(`failed to open test file at "%s" (%w)`, path, err)
 	}
 	defer file.Close()
 
@@ -90,11 +90,11 @@ func getFailureDetails(test TestResult) string {
 func Execute(path string, params TestParameters) TestResult {
 	testLog := params.TestLog
 
-	testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Parsing %s", path), Status: messages.MessageStatusStarted})
+	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Parsing %s", path), Status: messages.MessageStatusStarted})
 
 	steps, err := parse(path)
 	if err != nil {
-		testLog.Push(messages.Update{
+		_ = testLog.Push(messages.Update{
 			Key:     path,
 			Status:  messages.MessageStatusError,
 			Details: fmt.Sprintf("Error: %s", err.Error()),
@@ -102,12 +102,12 @@ func Execute(path string, params TestParameters) TestResult {
 		return TestResult{Error: err}
 	}
 
-	testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
+	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
 	test := TestResult{StepsCount: len(steps)}
 	status := NewTestStatus(params)
 	for i, step := range steps {
-		testLog.Push(messages.Update{
+		_ = testLog.Push(messages.Update{
 			Key:             path,
 			ProgressMessage: fmt.Sprintf("(Step %d of %d)", i+1, len(steps)),
 		})
@@ -124,9 +124,9 @@ func Execute(path string, params TestParameters) TestResult {
 
 	test.Success = test.FailureCount == 0
 	if test.Success {
-		testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusSuccess})
+		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusSuccess})
 	} else {
-		testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusError, Details: getFailureDetails(test)})
+		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusError, Details: getFailureDetails(test)})
 	}
 	return test
 }
