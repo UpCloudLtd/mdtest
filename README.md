@@ -10,3 +10,26 @@ Build binary and test examples:
 make
 ./bin/mdtest examples/
 ```
+
+## Development
+
+Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) when committing your changes.
+
+To lint the code, run `golangci-lint run`. See its documentation for  [local installation instructions](https://golangci-lint.run/usage/install/#local-installation).
+
+```sh
+golangci-lint run
+```
+
+To test the code, run `go test ./...`.
+
+```sh
+go test ./...
+```
+
+To build the application and execute the tests in [examples/](./examples/) directory, run:
+
+```sh
+make
+./bin/mdtest examples/
+```
