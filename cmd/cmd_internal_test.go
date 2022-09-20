@@ -1,3 +1,4 @@
+//nolint:paralleltest // These can not be run in parallel due to how args are overridden
 package cmd
 
 import (

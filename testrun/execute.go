@@ -21,24 +21,24 @@ func executeTests(paths []string, params RunParameters, testLog *progress.Progre
 
 	for {
 		select {
-		case curJobId := <-jobQueue:
+		case curJobID := <-jobQueue:
 			if len(testQueue) == 0 {
 				break
 			}
 			curTest := testQueue[0]
 			testQueue = testQueue[1:]
 
-			go func(jobId int, test string) {
+			go func(jobID int, test string) {
 				defer func() {
-					jobQueue <- jobId
+					jobQueue <- jobID
 				}()
 				returnChan <- testcase.Execute(curTest, testcase.TestParameters{
-					JobId:   jobId,
-					RunId:   run.Id,
-					TestId:  id.NewTestId(),
+					JobID:   jobID,
+					RunID:   run.ID,
+					TestID:  id.NewTestID(),
 					TestLog: testLog,
 				})
-			}(curJobId, curTest)
+			}(curJobID, curTest)
 		case res := <-returnChan:
 			if res.Success {
 				run.SuccessCount++

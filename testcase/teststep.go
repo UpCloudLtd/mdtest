@@ -60,6 +60,6 @@ func parseStep(scanner *bufio.Scanner) (Step, error) {
 	case "sh":
 		return parseShStep(options, content)
 	default:
-		return nil, nil
+		return nil, nil //nolint:nilnil // "Parsed" non-step code block without errors
 	}
 }

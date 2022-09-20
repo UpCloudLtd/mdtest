@@ -17,7 +17,7 @@ func unexpectedExitCode(expected, got int) error {
 }
 
 func (s shStep) Execute(t *testStatus) StepResult {
-	cmd := exec.Command("sh", "-xec", s.script)
+	cmd := exec.Command("sh", "-xec", s.script) //nolint:gosec // Here we trust that the user knows what their tests do
 	cmd.Env = t.Env
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -26,7 +26,7 @@ func (s shStep) Execute(t *testStatus) StepResult {
 		if !isExit {
 			return StepResult{
 				Success: false,
-				Error:   fmt.Errorf("unexpected error (%s)", err.Error()),
+				Error:   fmt.Errorf("unexpected error (%w)", err),
 				Output:  string(output),
 			}
 		} else if got := exit.ExitCode(); got != s.exitCode {
@@ -36,13 +36,11 @@ func (s shStep) Execute(t *testStatus) StepResult {
 				Output:  string(output),
 			}
 		}
-	} else {
-		if s.exitCode != 0 {
-			return StepResult{
-				Success: false,
-				Error:   unexpectedExitCode(s.exitCode, 0),
-				Output:  string(output),
-			}
+	} else if s.exitCode != 0 {
+		return StepResult{
+			Success: false,
+			Error:   unexpectedExitCode(s.exitCode, 0),
+			Output:  string(output),
 		}
 	}
 
