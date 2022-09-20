@@ -12,19 +12,27 @@ import (
 )
 
 type testStatus struct {
-	TestId string
+	Params TestParameters
 	Env    []string
 }
 
-func NewTestStatus() testStatus {
-	id := testId()
+func NewTestStatus(params TestParameters) testStatus {
 	return testStatus{
 		Env: append(os.Environ(),
-			"MDTEST_TESTID="+id,
+			fmt.Sprintf("MDTEST_JOBID=%d", params.JobId),
+			"MDTEST_RUNID="+params.RunId,
+			"MDTEST_TESTID="+params.TestId,
 			"MDTEST_VERSION="+globals.Version,
 		),
-		TestId: id,
+		Params: params,
 	}
+}
+
+type TestParameters struct {
+	JobId   int
+	RunId   string
+	TestId  string
+	TestLog *progress.Progress
 }
 
 type TestResult struct {
@@ -79,7 +87,9 @@ func getFailureDetails(test TestResult) string {
 	return details
 }
 
-func Execute(path string, testLog *progress.Progress) TestResult {
+func Execute(path string, params TestParameters) TestResult {
+	testLog := params.TestLog
+
 	testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Parsing %s", path), Status: messages.MessageStatusStarted})
 
 	steps, err := parse(path)
@@ -95,7 +105,7 @@ func Execute(path string, testLog *progress.Progress) TestResult {
 	testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
 	test := TestResult{StepsCount: len(steps)}
-	status := testStatus{Env: os.Environ(), TestId: testId()}
+	status := NewTestStatus(params)
 	for i, step := range steps {
 		testLog.Push(messages.Update{
 			Key:             path,
