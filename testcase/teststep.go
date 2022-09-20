@@ -36,6 +36,17 @@ func parseOptions(optionsStr string) (string, map[string]string) {
 	return lang, options
 }
 
+func parseCodeBlock(lang string, options map[string]string, content string) (Step, error) {
+	switch lang {
+	case "env":
+		return parseEnvStep(options, content)
+	case "sh":
+		return parseShStep(options, content)
+	default:
+		return nil, nil //nolint:nilnil // "Parsed" non-step code block without errors
+	}
+}
+
 func parseStep(scanner *bufio.Scanner) (Step, error) {
 	line := scanner.Text()
 	if !strings.HasPrefix(line, "```") {
@@ -48,18 +59,10 @@ func parseStep(scanner *bufio.Scanner) (Step, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "```") {
-			break
+			return parseCodeBlock(lang, options, content)
 		}
 
 		content += line + "\n"
 	}
-
-	switch lang {
-	case "env":
-		return parseEnvStep(options, content)
-	case "sh":
-		return parseShStep(options, content)
-	default:
-		return nil, nil //nolint:nilnil // "Parsed" non-step code block without errors
-	}
+	return nil, fmt.Errorf("could not parse test step (unexpected EOF)")
 }

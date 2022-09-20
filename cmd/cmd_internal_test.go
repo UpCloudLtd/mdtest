@@ -19,12 +19,16 @@ func TestRoot_testdata(t *testing.T) {
 			exitCode: 1,
 		},
 		{
+			testPath: "../testdata/fail_invalid_test_step.md",
+			exitCode: 1,
+		},
+		{
 			testPath: "../testdata/success_expected_0_got_0.md",
 			exitCode: 0,
 		},
 		{
 			testPath: "../testdata",
-			exitCode: 2,
+			exitCode: 3,
 		},
 	} {
 		test := test
