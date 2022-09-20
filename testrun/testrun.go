@@ -7,13 +7,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/UpCloudLtd/mdtest/id"
 	"github.com/UpCloudLtd/mdtest/output"
 	"github.com/UpCloudLtd/mdtest/testcase"
 	"github.com/UpCloudLtd/progress"
 	"github.com/UpCloudLtd/progress/messages"
 )
 
+type RunParameters struct {
+	NumberOfJobs int
+}
+
 type RunResult struct {
+	Id           string
 	Started      time.Time
 	Finished     time.Time
 	Success      bool
@@ -92,7 +98,7 @@ func PrintSummary(run RunResult) {
 	fmt.Printf("\n%s", output.SummaryTable((data)))
 }
 
-func Execute(rawPaths []string) RunResult {
+func Execute(rawPaths []string, params RunParameters) RunResult {
 	started := time.Now()
 	paths, warnings := parseFilePaths(rawPaths, 1)
 
@@ -103,17 +109,12 @@ func Execute(rawPaths []string) RunResult {
 		testLog.Push(warning.Message())
 	}
 
-	run := RunResult{Started: started, Success: true}
-	for _, path := range paths {
-		res := testcase.Execute(path, testLog)
-		if res.Success {
-			run.SuccessCount++
-		} else {
-			run.FailureCount++
-		}
-
-		run.TestResults = append(run.TestResults, res)
+	run := RunResult{
+		Id:      id.NewRunId(),
+		Started: started,
+		Success: true,
 	}
+	executeTests(paths, params, testLog, &run)
 
 	testLog.Stop()
 	run.Success = run.FailureCount == 0
