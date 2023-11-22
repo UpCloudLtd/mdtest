@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/UpCloudLtd/mdtest/globals"
@@ -23,6 +24,7 @@ func NewTestStatus(params TestParameters) testStatus {
 			"MDTEST_RUNID="+params.RunID,
 			"MDTEST_TESTID="+params.TestID,
 			"MDTEST_VERSION="+globals.Version,
+			"MDTEST_WORKSPACE="+getTestDirPath(params),
 		),
 		Params: params,
 	}
@@ -69,6 +71,30 @@ func parse(path string) ([]Step, error) {
 	return steps, nil
 }
 
+func getTestDirPath(params TestParameters) string {
+	return filepath.Join(os.TempDir(), fmt.Sprintf("mdtest_%s_%s", params.RunID, params.TestID))
+}
+
+func createTestDir(params TestParameters) error {
+	dirPath := getTestDirPath(params)
+	err := os.MkdirAll(dirPath, 0o750)
+	if err != nil {
+		return fmt.Errorf(`failed to create temporary directory "%s": "%w`, dirPath, err)
+	}
+
+	return nil
+}
+
+func removeTestDir(params TestParameters) error {
+	dirPath := getTestDirPath(params)
+	err := os.RemoveAll(dirPath)
+	if err != nil {
+		return fmt.Errorf(`failed to remove directory "%s": "%w`, dirPath, err)
+	}
+
+	return nil
+}
+
 func getFailureDetails(test TestResult) string {
 	details := "Failures:"
 	for i, res := range test.Results {
@@ -102,6 +128,18 @@ func Execute(path string, params TestParameters) TestResult {
 		return TestResult{Error: err}
 	}
 
+	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Creating temporary directory for %s", path), Status: messages.MessageStatusStarted})
+
+	err = createTestDir(params)
+	if err != nil {
+		_ = testLog.Push(messages.Update{
+			Key:     path,
+			Status:  messages.MessageStatusError,
+			Details: fmt.Sprintf("Error: %s", err.Error()),
+		})
+		return TestResult{Error: err}
+	}
+
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
 	test := TestResult{StepsCount: len(steps)}
@@ -125,6 +163,7 @@ func Execute(path string, params TestParameters) TestResult {
 	test.Success = test.FailureCount == 0
 	if test.Success {
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusSuccess})
+		_ = removeTestDir(params)
 	} else {
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusError, Details: getFailureDetails(test)})
 	}
