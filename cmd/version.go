@@ -18,11 +18,16 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 	versionCmd.Run = func(cmd *cobra.Command, args []string) {
 		data := []output.SummaryItem{
-			{Key: "Version", Value: globals.Version},
+			{Key: "Version", Value: globals.GetVersion()},
 			{Key: "Build date", Value: globals.BuildDate},
 			{Key: "Built with", Value: runtime.Version()},
 			{Key: "System", Value: runtime.GOOS},
 			{Key: "Architecture", Value: runtime.GOARCH},
+		}
+
+		// Omit unknown build date from the output
+		if globals.BuildDate == "unknown" {
+			data = append(data[:1], data[2:]...)
 		}
 
 		fmt.Fprint(versionCmd.OutOrStdout(), output.SummaryTable(data))
