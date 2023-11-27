@@ -25,6 +25,11 @@ func init() {
 			{Key: "Architecture", Value: runtime.GOARCH},
 		}
 
+		// Omit unknown build date from the output
+		if globals.BuildDate == "unknown" {
+			data = append(data[:1], data[2:]...)
+		}
+
 		fmt.Fprint(versionCmd.OutOrStdout(), output.SummaryTable(data))
 	}
 }
