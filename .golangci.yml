@@ -2,6 +2,9 @@
 # UpCloud golangci-lint configuration
 #
 
+run:
+  timeout: 5m
+
 linters:
   #
   # We use a custom set of linters, so disable all and enable one-by-one.
@@ -9,7 +12,7 @@ linters:
   disable-all: true
   #
   # Run golangci-lint linters or see https://golangci-lint.run/usage/linters/
-  # for a list of all linters. This config was last updated for v1.48.0.
+  # for a list of all linters. This config was last updated for v1.59.1.
   #
   # Please keep the list sorted alphabetically.
   #
@@ -67,10 +70,7 @@ linters:
     # Similar: `gocognit`, `gocyclo`, `maintidx`.
     ## - cyclop # DISABLE
 
-    # Finds unused code. Getting rid of unused code is good and with version
-    # control, doesn't really have downsides. Redundant with `unused` and
-    # `varcheck` enabled, possibly to be deprecated in golangci-lint v2.
-    ## - deadcode # DISABLE
+    ### - deadcode # deprecated, replaced by `unused`
 
     # Encourage various rules on grouping and arranging `const`s, `var`s,
     # `type`s and `func`s, configurability per mentioned keyword; and `init`
@@ -88,9 +88,9 @@ linters:
     ## - decorder # DISABLE
 
     # Go linter that checks if package imports are in a list of acceptable
-    # packages. We do not have a default global list (yet?).
+    # packages.
     # Similar: `gomodguard`.
-    ## - depguard # DISABLE
+    - depguard
 
     # Warns on too many blank receivers in an assignment, for example
     # `_, _, _, err := doSomething()`. Commonly this would indicate a potential
@@ -106,6 +106,10 @@ linters:
     # to missing subtle differences. Good idea to enable this as early in
     # project lifecycle as possible.
     - dupl
+
+    # Check for duplicate adjacent words in comments and strings. These are
+    # almost always errors, often caused by inadvertent edits.
+    - dupword
 
     # Checks for two durations multiplied together. Seems like this could
     # prevent potential bugs, but based on the experiences with actual code,
@@ -145,7 +149,7 @@ linters:
 
     # Checks that SQL statements are executed with the appropriate `.Exec` or
     # `.Query` function.
-    - execinquery
+    ### - execinquery # deprecated as of 1.58.1
 
     # Checks that switches of enum(-like) types cover every possible case.
     # Very helpful when we need to add new cases to enums, making sure that all
@@ -217,6 +221,10 @@ linters:
     # costs. Avoidable in most cases.
     - gochecknoinits
 
+    # Checks exhaustiveness of type switch statements for interfaces
+    # annotated to be "sum types".
+    - gochecksumtype
+
     # See `cyclop` for discussion.
     ## - gocognit # DISABLE
 
@@ -272,13 +280,6 @@ linters:
 
     ### - golint # deprecated, replaced by revive
 
-    # Analyzer to detect magic numbers. Could be useful, but the default
-    # configuration (disabling almost all bare numbers) seems a tad aggressive
-    # and will trigger a lot of changes. Could be worked around by config,
-    # but how to get a good one going? Disabling in `strconv.Parse*` could
-    # be a start.
-    ## - gomnd # DISABLE
-
     # Ensures that `go.mod` files stay clean. Limits the use of `replace` and
     # `retract` and `exclude` directives in `go.mod`, which are mostly used
     # ad-hoc in development, and becoming obsolete as of Go 1.18's workspaces.
@@ -300,6 +301,10 @@ linters:
     # readability. Perhaps slightly on the aggressive side.
     - gosimple
 
+    # Flags code smells that may prove to be hindrance to
+    # internationalization ("i18n") and/or localization ("l10n").
+    - gosmopolitan
+
     # `go vet` is the 'official' linter, found in stdlib. Seems to do a lot of
     # the same stuff as `staticcheck`, but as both are enabled in golangci-lint
     # by default, and neither is advertized as being a replacement for the
@@ -319,10 +324,12 @@ linters:
     - importas
 
     # Detects when assignments to existing variables are not used. Can uncover
-    # variable shadowing bugs as well. Redundant with `wastedassign`, but
-    # kept enabled for now due to its issues with Go 1.18:
-    # https://github.com/sanposhiho/wastedassign/issues/41
-    - ineffassign
+    # variable shadowing bugs as well. Redundant with `wastedassign`.
+    # - ineffassign # DISABLE
+
+    # Check for too many interface members.
+    # Go Proverbs: "The bigger the interface, the weaker the abstraction."
+    - interfacebloat
 
     ### - interfacer # deprecated
 
@@ -335,6 +342,10 @@ linters:
 
     # Report too long lines. Likely calls for discussion before enabling.
     ## - lll # DISABLE
+
+    # Check that common logger library function calls have appropriate number
+    # of key/value arguments.
+    - loggercheck
 
     # See discussion in `cyclop`.
     ## - maintidx # DISABLE
@@ -350,13 +361,16 @@ linters:
 
     ### - maligned # deprecated
 
+    # Helps avoid unnecessary conversions between byte arrays and strings.
+    - mirror
+
     # Finds commonly misspelled English words, autofixable. Fixes/suggestions
     # need to be handled with care, as they include occurrences of misspelled
     # words in strings which could have external dependencies, such as APIs.
     - misspell
 
     # Forbids final naked returns (eg. named return values and just `return` as
-    # the last statement) in functions longer than 5 (by default) lines.
+    # the last statement) in long enough (configurable) functions.
     # Naked returns are nice for simple helper methods, but in many cases they
     # can be a bit difficult to follow along and make things more confusing
     # compared to just explicit `return foo, nil`.
@@ -431,6 +445,15 @@ linters:
     # Check Prometheus metrics naming via promlint. Not applicable for now.
     ## - promlinter # DISABLE
 
+    # Check protobuf field chain accesses susceptible for causing panics.
+    - protogetter
+
+    # Warn about reassigning top level variables from another package.
+    # Such variables are rarely if ever intended to be reassigned; they tend
+    # to be variables instead of constants because of language constraints or
+    # for interoperability/idiomacy.
+    - reassign
+
     # A better (e.g. more rules and faster) version of the original `golint`
     # which has been deprecated.
     # Similar: `stylecheck` (`revive` seems more extensive, `stylecheck` is a
@@ -444,22 +467,30 @@ linters:
 
     ### - scopelint # deprecated
 
+    # Code style consistency checks specific to `log/slog` use.
+    - sloglint
+
     # Checks that `sql.Rows` and `sql.Stmt` are closed properly. Not closing
     # can cause exhaustion of the connection pool and problems.
     - sqlclosecheck
+
+    # Detects incorrect OpenTelemetry span usage patterns.
+    - spancheck
 
     # A lot of different checks, `go vet` on steroids, as described by the
     # author. Encourages some basic good practices, catches some hard to debug
     # problems.
     - staticcheck
 
-    # Finds unused struct fields, i.e. fields that are not referenced from
-    # anywhere else. Helps remove dead code.
-    - structcheck
+    ### - structcheck # deprecated, replaced by `unused`
 
     # Encourages various opinionated styles and rules including naming.
     # Redundant with `revive`.
     ## - stylecheck # DISABLE
+
+    # Aligns and sorts struct tags, for better readability and
+    # mainainability.
+    - tagalign
 
     # Checks the struct tags for correct and consistent style.
     # Many struct tags exist for interoperability in possibly third party
@@ -471,6 +502,14 @@ linters:
     # need to bother with restoring the pre-test env var value. Note that
     # this is not applicable to parallel tests.
     - tenv
+
+    # Checks that examples run by the `testing` package have an applicable
+    # "output" comment, so that the example output can be verified to be as
+    # expected.
+    - testableexamples
+
+    # Code style consistency and readability checks specific to `testify`.
+    - testifylint
 
     # Promotes using test packages (eg. `package foo_test`) in regular tests
     # (files ending with `_test.go`), allows for internal tests (in the same
@@ -519,8 +558,7 @@ linters:
     # Endorse use of various consts and variables defined in stdlib.
     - usestdlibvars
 
-    # Finds unused global variables and constants. Helps remove dead code.
-    - varcheck
+    ### - varcheck # deprecated, replaced by `unused`
 
     # Variable name length checks, takes definition and use span lengths into
     # account. Nice idea, idiomatic Go, but needs discussion if we want to go
@@ -553,13 +591,16 @@ linters:
     # over this.
     ## - wsl # DISABLE
 
+    # Detects incorrect zerolog usage patterns.
+    - zerologlint
+
 output:
   # Get all issues from all linters, instead of just first per line, so we
   # get to see everything on first pass.
   uniq-by-line: false
 
 issues:
-  exclude:
+  exclude: []
     # We used to have a mixture of initialisms and non-initialisms between and
     # even within projects, but are converging towards the initialisms practice
     # that is the most common one with Go code in general. Note that changing
@@ -593,6 +634,13 @@ issues:
         - bodyclose
 
 linters-settings:
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/pkg/errors"
+            desc: "use stdlib instead"
+
   errcheck:
     # See discussion in `forcetypeassert`.
     check-type-assertions: true
@@ -625,9 +673,12 @@ linters-settings:
         alias: pkgerrors
 
   nolintlint:
-    allow-leading-space: false
     require-explanation: true
     require-specific: true
+
+  reassign:
+    patterns:
+      - ".*"
 
   revive:
     rules:
@@ -636,13 +687,16 @@ linters-settings:
           - []
           - [
               "ACME",
+              "AMQP",
               "BGP",
               "CA",
               "CIDR",
+              "CN",
               "CSV",
               "DB",
               "DCMI",
               "DHCP",
+              "DN",
               "DSA",
               "ECDSA",
               "EMA",
@@ -650,8 +704,10 @@ linters-settings:
               "EVPN",
               "FIFO",
               "FRU",
+              "GID",
               "GPU",
               "IB",
+              "IOPS",
               "IPMI",
               "JWT",
               "KV",
@@ -660,6 +716,7 @@ linters-settings:
               "LIFO",
               "LRU",
               "MAC",
+              "MS",
               "NIC",
               "PDF",
               "PKI",
@@ -667,12 +724,16 @@ linters-settings:
               "PTR",
               "REST",
               "RSA",
+              "RTP",
               "RX",
               "SCSI",
               "SDN",
               "SHA",
+              "SIP",
               "SPOE",
               "SSD",
+              "TS",
+              "TSIG",
               "TSV",
               "TTL",
               "TX",
