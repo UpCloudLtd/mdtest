@@ -1,6 +1,6 @@
 module github.com/UpCloudLtd/mdtest
 
-go 1.20
+go 1.22
 
 require (
 	github.com/UpCloudLtd/progress v1.0.2

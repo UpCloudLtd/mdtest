@@ -9,10 +9,10 @@ import (
 
 func TestNewTestID(t *testing.T) {
 	t.Parallel()
-	assert.NotEqual(t, id.NewTestID(), id.NewTestID())
+	assert.NotEqual(t, id.NewTestID(), id.NewTestID()) //nolint:testifylint // Validate both calls return unique values
 }
 
 func TestNewRunID(t *testing.T) {
 	t.Parallel()
-	assert.NotEqual(t, id.NewRunID(), id.NewRunID())
+	assert.NotEqual(t, id.NewRunID(), id.NewRunID()) //nolint:testifylint // Validate both calls return unique values
 }
