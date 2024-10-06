@@ -13,13 +13,6 @@ func NewRunError(run RunResult) *RunError {
 	return &RunError{FailureCount: run.FailureCount}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func (err RunError) ExitCode() int {
 	return min(err.FailureCount, 99)
 }
