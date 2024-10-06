@@ -14,4 +14,4 @@ By default, `mdtest` validates that the script defined in a code block exited wi
 fmt.Println("Hello world!")
 ```
 
-Thus, the above Go code block is ignores similarly than text paragraphs.
+Thus, the above Go code block is ignored similarly than text paragraphs.
