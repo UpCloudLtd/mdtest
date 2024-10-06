@@ -8,14 +8,14 @@ type envStep struct {
 	envUpdates []string
 }
 
-func (e envStep) Execute(t *testStatus) StepResult {
-	t.Env = append(t.Env, e.envUpdates...)
+func (s envStep) Execute(t *testStatus) StepResult {
+	t.Env = append(t.Env, s.envUpdates...)
 
 	return StepResult{
 		Success: true,
 	}
 }
 
-func parseEnvStep(options map[string]string, content string) (Step, error) {
+func parseEnvStep(_ map[string]string, content string) (Step, error) {
 	return envStep{envUpdates: strings.Split(content, "\n")}, nil
 }

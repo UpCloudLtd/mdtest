@@ -7,13 +7,13 @@ import (
 )
 
 func maxKeyLen(data []SummaryItem) int {
-	max := 0
+	maxLen := 0
 	for _, i := range data {
-		if len(i.Key) > max {
-			max = len(i.Key)
+		if len(i.Key) > maxLen {
+			maxLen = len(i.Key)
 		}
 	}
-	return max
+	return maxLen
 }
 
 type SummaryItem struct {
