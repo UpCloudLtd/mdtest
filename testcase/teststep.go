@@ -37,6 +37,10 @@ func parseOptions(optionsStr string) (string, map[string]string) {
 }
 
 func parseCodeBlock(lang string, options map[string]string, content string) (Step, error) {
+	if options["filename"] != "" {
+		return parseFilenameStep(options, content)
+	}
+
 	switch lang {
 	case "env":
 		return parseEnvStep(options, content)
