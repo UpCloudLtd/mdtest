@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"strings"
+
+	"github.com/UpCloudLtd/mdtest/utils"
 )
 
 type StepResult struct {
@@ -14,26 +16,6 @@ type StepResult struct {
 
 type Step interface {
 	Execute(*testStatus) StepResult
-}
-
-func parseOptions(optionsStr string) (string, map[string]string) {
-	optionsList := strings.Split(optionsStr, " ")
-	options := make(map[string]string)
-
-	lang := optionsList[0]
-	for _, option := range optionsList[1:] {
-		items := strings.SplitN(option, "=", 2)
-
-		key := items[0]
-		value := ""
-		if len(items) > 1 {
-			value = items[1]
-		}
-
-		options[key] = value
-	}
-
-	return lang, options
 }
 
 func parseCodeBlock(lang string, options map[string]string, content string) (Step, error) {
@@ -57,7 +39,7 @@ func parseStep(scanner *bufio.Scanner) (Step, error) {
 		return nil, fmt.Errorf("current scanner position is not at start of a test step")
 	}
 
-	lang, options := parseOptions(line[3:])
+	lang, options := utils.ParseOptions(line[3:])
 
 	content := ""
 	for scanner.Scan() {
