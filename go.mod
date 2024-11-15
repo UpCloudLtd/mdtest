@@ -3,7 +3,7 @@ module github.com/UpCloudLtd/mdtest
 go 1.22
 
 require (
-	github.com/UpCloudLtd/progress v1.0.2
+	github.com/UpCloudLtd/progress v1.0.3
 	github.com/jedib0t/go-pretty/v6 v6.4.9
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.4
