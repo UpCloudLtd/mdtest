@@ -31,12 +31,7 @@ func init() {
 		}
 
 		res := testrun.Execute(args, params)
-		err := testrun.NewRunError(res)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return testrun.NewRunError(res)
 	}
 }
 
