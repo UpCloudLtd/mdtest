@@ -2,7 +2,11 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRoot_testdata(t *testing.T) {
@@ -35,9 +39,57 @@ func TestRoot_testdata(t *testing.T) {
 		t.Run(test.testPath, func(t *testing.T) {
 			rootCmd.SetArgs([]string{test.testPath})
 			exitCode := Execute()
-			if exitCode != test.exitCode {
-				t.Errorf("Expected exit code %d, got %d", test.exitCode, exitCode)
+			assert.Equal(t, test.exitCode, exitCode)
+		})
+	}
+}
+
+func TestNormalise_testdata(t *testing.T) {
+	for _, test := range []struct {
+		testPath       string
+		transformsArgs []string
+		exitCode       int
+		output         string
+	}{
+		{
+			testPath:       "../testdata/success_normalise_infotexts.md",
+			transformsArgs: []string{"-t", "filename=title"},
+			exitCode:       0,
+			output: `# Success: normalise info texts
+
+The normalise command with ` + "`" + `-t filename=title` + "`" + ` transform argument should remove and ` + "`" + `no_value` + "`" + ` and ` + "`" + `key=value` + "`" + ` args and replace ` + "`" + `filename` + "`" + ` key with ` + "`" + `title` + "`" + `,
+
+` + "```" + `sh title=true.sh
+exit 0
+` + "```" + `
+`,
+		},
+	} {
+		test := test
+		t.Run(test.testPath, func(t *testing.T) {
+			dir, err := os.MkdirTemp("", "example")
+			if err != nil {
+				t.Errorf("Failed to create temp dir: %v", err)
 			}
+			defer os.RemoveAll(dir)
+
+			var args []string
+			args = append(args, "normalise", "-o", dir)
+			args = append(args, test.transformsArgs...)
+			args = append(args, test.testPath)
+			rootCmd.SetArgs(args)
+
+			exitCode := Execute()
+			assert.Equal(t, test.exitCode, exitCode)
+
+			outputFile := filepath.Join(dir, filepath.Base(test.testPath))
+			assert.FileExists(t, outputFile)
+
+			outputBytes, err := os.ReadFile(filepath.Join(dir, filepath.Base(test.testPath)))
+			if err != nil {
+				t.Errorf("Failed to read output file: %v", err)
+			}
+			assert.Equal(t, test.output, string(outputBytes))
 		})
 	}
 }
