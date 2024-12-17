@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/UpCloudLtd/progress/messages"
 )
+
+var quotedValueRegex = regexp.MustCompile(`^["'](.*)["']$`)
 
 type PathWarning struct {
 	path string
@@ -72,6 +75,10 @@ func ParseOptions(optionsStr string) (string, map[string]string) {
 		value := ""
 		if len(items) > 1 {
 			value = items[1]
+		}
+
+		if quotedValueRegex.MatchString(value) {
+			value = value[1 : len(value)-1]
 		}
 
 		options[key] = value
