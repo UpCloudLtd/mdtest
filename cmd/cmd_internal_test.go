@@ -46,20 +46,33 @@ func TestRoot_testdata(t *testing.T) {
 
 func TestNormalise_testdata(t *testing.T) {
 	for _, test := range []struct {
-		testPath       string
-		transformsArgs []string
-		exitCode       int
-		output         string
+		testPath      string
+		transformArgs []string
+		exitCode      int
+		output        string
 	}{
 		{
-			testPath:       "../testdata/success_normalise_infotexts.md",
-			transformsArgs: []string{"-t", "filename=title"},
-			exitCode:       0,
+			testPath:      "../testdata/success_normalise_infotexts.md",
+			transformArgs: []string{"-t", "filename=title"},
+			exitCode:      0,
 			output: `# Success: normalise info texts
 
 The normalise command with ` + "`" + `-t filename=title` + "`" + ` transform argument should remove and ` + "`" + `no_value` + "`" + ` and ` + "`" + `key=value` + "`" + ` args and replace ` + "`" + `filename` + "`" + ` key with ` + "`" + `title` + "`" + `,
 
 ` + "```" + `sh title=true.sh
+exit 0
+` + "```" + `
+`,
+		},
+		{
+			testPath:      "../testdata/success_normalise_infotexts.md",
+			transformArgs: []string{"-t", "filename=title", "--quote-values=always"},
+			exitCode:      0,
+			output: `# Success: normalise info texts
+
+The normalise command with ` + "`" + `-t filename=title` + "`" + ` transform argument should remove and ` + "`" + `no_value` + "`" + ` and ` + "`" + `key=value` + "`" + ` args and replace ` + "`" + `filename` + "`" + ` key with ` + "`" + `title` + "`" + `,
+
+` + "```" + `sh title="true.sh"
 exit 0
 ` + "```" + `
 `,
@@ -75,7 +88,7 @@ exit 0
 
 			var args []string
 			args = append(args, "normalise", "-o", dir)
-			args = append(args, test.transformsArgs...)
+			args = append(args, test.transformArgs...)
 			args = append(args, test.testPath)
 			rootCmd.SetArgs(args)
 

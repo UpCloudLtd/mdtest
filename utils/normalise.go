@@ -18,7 +18,7 @@ type NormalizeParameters struct {
 	Transforms []string
 }
 
-func Normalize(rawPaths []string, params NormalizeParameters) error {
+func Normalize(rawPaths []string, params NormalizeParameters, quoteValues string) error {
 	paths, warnings := ParseFilePaths(rawPaths, 1)
 
 	info, err := os.Stat(params.OutputPath)
@@ -55,7 +55,7 @@ func Normalize(rawPaths []string, params NormalizeParameters) error {
 			Message: fmt.Sprintf("Normalising %s", path),
 			Status:  messages.MessageStatusStarted,
 		})
-		err := normalize(path, params.OutputPath, transformMap)
+		err := normalize(path, params.OutputPath, transformMap, quoteValues)
 		if err != nil {
 			_ = normLog.Push(messages.Update{
 				Key:     path,
@@ -74,12 +74,19 @@ func Normalize(rawPaths []string, params NormalizeParameters) error {
 	return nil
 }
 
-func transformOptions(options, transforms map[string]string) string {
+func quoteValue(value, quoteValues string) string {
+	if quoteValues == "always" {
+		return fmt.Sprintf(`"%s"`, value)
+	}
+	return value
+}
+
+func transformOptions(options, transforms map[string]string, quoteValues string) string {
 	output := ""
 	for key, value := range options {
 		if newKey := transforms[key]; newKey != "" {
 			if value != "" {
-				output += fmt.Sprintf(" %s=%s", newKey, value)
+				output += fmt.Sprintf(" %s=%s", newKey, quoteValue(value, quoteValues))
 			} else {
 				output += fmt.Sprintf(" %s", newKey)
 			}
@@ -89,7 +96,7 @@ func transformOptions(options, transforms map[string]string) string {
 	return output
 }
 
-func normalize(path, outputDir string, transforms map[string]string) error {
+func normalize(path, outputDir string, transforms map[string]string, quoteValues string) error {
 	input, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf(`failed to open input file at "%s" (%w)`, path, err)
@@ -109,7 +116,7 @@ func normalize(path, outputDir string, transforms map[string]string) error {
 			info := line[3:]
 			if len(info) > 0 {
 				lang, options := ParseOptions(info)
-				line = fmt.Sprintf("```%s%s", lang, transformOptions(options, transforms))
+				line = fmt.Sprintf("```%s%s", lang, transformOptions(options, transforms, quoteValues))
 			}
 		}
 		_, err = output.WriteString(line + "\n")
