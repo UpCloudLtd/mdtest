@@ -1,6 +1,7 @@
 package testcase
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -13,7 +14,7 @@ type filenameStep struct {
 	filename string
 }
 
-func (s filenameStep) Execute(t *testStatus) StepResult {
+func (s filenameStep) Execute(_ context.Context, t *testStatus) StepResult {
 	target := filepath.Join(getTestDirPath(t.Params), s.filename)
 	dir := filepath.Dir(target)
 	if _, err := os.Stat(dir); errors.Is(err, fs.ErrNotExist) {

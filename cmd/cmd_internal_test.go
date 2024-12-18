@@ -32,12 +32,12 @@ func TestRoot_testdata(t *testing.T) {
 		},
 		{
 			testPath: "../testdata",
-			exitCode: 3,
+			exitCode: 4,
 		},
 	} {
 		test := test
 		t.Run(test.testPath, func(t *testing.T) {
-			rootCmd.SetArgs([]string{test.testPath})
+			rootCmd.SetArgs([]string{"--timeout", "1s", test.testPath})
 			exitCode := Execute()
 			assert.Equal(t, test.exitCode, exitCode)
 		})

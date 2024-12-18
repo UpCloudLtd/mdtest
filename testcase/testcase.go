@@ -2,12 +2,14 @@ package testcase
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/UpCloudLtd/mdtest/globals"
+	"github.com/UpCloudLtd/mdtest/utils"
 	"github.com/UpCloudLtd/progress"
 	"github.com/UpCloudLtd/progress/messages"
 )
@@ -96,7 +98,12 @@ func removeTestDir(params TestParameters) error {
 }
 
 func getFailureDetails(test TestResult) string {
-	details := "Failures:"
+	details := ""
+	if test.FailureCount > 0 {
+		details += "Failures:"
+	} else if test.Error != nil {
+		details += "Canceled: " + test.Error.Error()
+	}
 	for i, res := range test.Results {
 		if err := res.Error; err != nil {
 			details += fmt.Sprintf("\n\nStep %d: %s", i+1, err.Error())
@@ -110,10 +117,15 @@ func getFailureDetails(test TestResult) string {
 
 	details += fmt.Sprintf("\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount)
 
+	skippedCount := test.StepsCount - test.SuccessCount - test.FailureCount
+	if skippedCount > 0 {
+		details += fmt.Sprintf(" (%d skipped)", skippedCount)
+	}
+
 	return details
 }
 
-func Execute(path string, params TestParameters) TestResult {
+func Execute(ctx context.Context, path string, params TestParameters) TestResult {
 	testLog := params.TestLog
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Parsing %s", path), Status: messages.MessageStatusStarted})
@@ -150,17 +162,20 @@ func Execute(path string, params TestParameters) TestResult {
 			ProgressMessage: fmt.Sprintf("(Step %d of %d)", i+1, len(steps)),
 		})
 
-		res := step.Execute(&status)
-		if res.Success {
-			test.SuccessCount++
+		if err := ctx.Err(); err == nil {
+			res := step.Execute(ctx, &status)
+			test.Results = append(test.Results, res)
+			if res.Success {
+				test.SuccessCount++
+			} else {
+				test.FailureCount++
+			}
 		} else {
-			test.FailureCount++
+			test.Error = utils.GetContextError(err)
 		}
-
-		test.Results = append(test.Results, res)
 	}
 
-	test.Success = test.FailureCount == 0
+	test.Success = test.SuccessCount == test.StepsCount
 	if test.Success {
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusSuccess})
 		_ = removeTestDir(params)

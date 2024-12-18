@@ -2,14 +2,17 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
+	"time"
 
 	"github.com/UpCloudLtd/mdtest/testrun"
 	"github.com/spf13/cobra"
 )
 
 var (
-	numberOfJobs int
+	numberOfJobs  int
+	timeoutString string
 
 	rootCmd = &cobra.Command{
 		Use:   "mdtest [flags] path ...",
@@ -21,18 +24,24 @@ var (
 
 func init() {
 	rootCmd.Flags().IntVarP(&numberOfJobs, "jobs", "j", runtime.NumCPU()*2, "number of jobs to use for executing tests in parallel")
+	rootCmd.Flags().StringVar(&timeoutString, "timeout", "", "timeout for the test run as a `duration` string, e.g., 1s, 1m, 1h")
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
 
+		timeout, err := time.ParseDuration(timeoutString)
+		if err != nil && timeoutString != "" {
+			return fmt.Errorf("failed to parse timeout: %w", err)
+		}
+
 		params := testrun.RunParameters{
 			NumberOfJobs: numberOfJobs,
 			OutputTarget: rootCmd.OutOrStdout(),
+			Timeout:      timeout,
 		}
 
 		res := testrun.Execute(args, params)
-		err := testrun.NewRunError(res)
-		if err != nil {
+		if err := testrun.NewRunError(res); err != nil {
 			return err
 		}
 

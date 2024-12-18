@@ -4,9 +4,14 @@ DATE    ?= $(shell date +%FT%T%z)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
 			cat $(CURDIR)/.version 2> /dev/null || echo v0)
 
+ifeq ($(shell $(GO) env GOOS),windows)
+    EXT = ".exe"
+else
+    EXT = ""
+endif
 
 BIN_DIR              = $(CURDIR)/bin
-CLI_BIN              = mdtest
+CLI_BIN              = mdtest$(EXT)
 
 .PHONY: build
 build: $(BIN_DIR)

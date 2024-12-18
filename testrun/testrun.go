@@ -1,8 +1,11 @@
 package testrun
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/UpCloudLtd/mdtest/id"
@@ -15,6 +18,7 @@ import (
 type RunParameters struct {
 	NumberOfJobs int
 	OutputTarget io.Writer
+	Timeout      time.Duration
 }
 
 type RunResult struct {
@@ -47,11 +51,25 @@ func PrintSummary(target io.Writer, run RunResult) {
 }
 
 func Execute(rawPaths []string, params RunParameters) RunResult {
+	ctx, cancel := context.WithCancel(context.Background())
+	if params.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), params.Timeout)
+		defer cancel()
+	}
+
 	started := time.Now()
 	paths, warnings := utils.ParseFilePaths(rawPaths, 1)
 
 	testLog := progress.NewProgress(nil)
 	testLog.Start()
+
+	// Handle possible interrupts during execution
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+	go func() {
+		<-signalChan
+		cancel()
+	}()
 
 	for _, warning := range warnings {
 		_ = testLog.Push(warning.Message())
@@ -62,7 +80,7 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 		Started: started,
 		Success: true,
 	}
-	executeTests(paths, params, testLog, &run)
+	executeTests(ctx, paths, params, testLog, &run)
 
 	testLog.Stop()
 	run.Success = run.FailureCount == 0
