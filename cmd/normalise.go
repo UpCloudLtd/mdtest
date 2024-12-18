@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	transforms []string
-	outputPath string
+	transforms  []string
+	outputPath  string
+	quoteValues string
 
 	normaliseCmd = &cobra.Command{
 		Aliases: []string{"normalize"},
@@ -21,6 +22,7 @@ var (
 func init() {
 	rootCmd.AddCommand(normaliseCmd)
 	normaliseCmd.Flags().StringArrayVarP(&transforms, "transform", "t", nil, "transform info text key in `old=new` format, e.g., `-t filename=title` would transform `filename` info text to `title` info text")
+	normaliseCmd.Flags().StringVar(&quoteValues, "quote-values", "no", "`when` to quote info text values. `always` or `no`")
 	normaliseCmd.Flags().StringVarP(&outputPath, "output", "o", "", "`directory` where to save the normalised files")
 	_ = normaliseCmd.MarkFlagRequired("output")
 	normaliseCmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -31,6 +33,6 @@ func init() {
 			Transforms: transforms,
 		}
 
-		return utils.Normalize(args, params)
+		return utils.Normalize(args, params, quoteValues)
 	}
 }
