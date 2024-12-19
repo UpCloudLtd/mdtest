@@ -2,6 +2,7 @@ package testcase
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,7 @@ type StepResult struct {
 }
 
 type Step interface {
-	Execute(*testStatus) StepResult
+	Execute(context.Context, *testStatus) StepResult
 }
 
 func parseCodeBlock(lang string, options map[string]string, content string) (Step, error) {

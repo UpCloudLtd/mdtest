@@ -1,10 +1,13 @@
 package testcase
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
+
+	"github.com/UpCloudLtd/mdtest/utils"
 )
 
 type shStep struct {
@@ -16,10 +19,15 @@ func unexpectedExitCode(expected, got int) error {
 	return fmt.Errorf("expected exit code %d, got %d", expected, got)
 }
 
-func (s shStep) Execute(t *testStatus) StepResult {
-	cmd := exec.Command("sh", "-xec", s.script) //nolint:gosec // Here we trust that the user knows what their tests do
+func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
+	cmd := exec.CommandContext(ctx, "sh", "-xec", s.script) //nolint:gosec // Here we trust that the user knows what their tests do
+	cmd.Cancel = func() error {
+		return utils.Terminate(cmd)
+	}
 	cmd.Dir = getTestDirPath(t.Params)
 	cmd.Env = t.Env
+	utils.UseProcessGroup(cmd)
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		var exit *exec.ExitError
@@ -30,7 +38,17 @@ func (s shStep) Execute(t *testStatus) StepResult {
 				Error:   fmt.Errorf("unexpected error (%w)", err),
 				Output:  string(output),
 			}
-		} else if got := exit.ExitCode(); got != s.exitCode {
+		}
+		got := exit.ExitCode()
+
+		if ctxErr := ctx.Err(); got == -1 && ctxErr != nil {
+			return StepResult{
+				Success: false,
+				Error:   utils.GetContextError(ctxErr),
+				Output:  string(output),
+			}
+		}
+		if got != s.exitCode {
 			return StepResult{
 				Success: false,
 				Error:   unexpectedExitCode(s.exitCode, got),

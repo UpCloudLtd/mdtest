@@ -1,12 +1,14 @@
 package testrun
 
 import (
+	"context"
+
 	"github.com/UpCloudLtd/mdtest/id"
 	"github.com/UpCloudLtd/mdtest/testcase"
 	"github.com/UpCloudLtd/progress"
 )
 
-func executeTests(paths []string, params RunParameters, testLog *progress.Progress, run *RunResult) {
+func executeTests(ctx context.Context, paths []string, params RunParameters, testLog *progress.Progress, run *RunResult) {
 	if len(paths) == 0 {
 		return
 	}
@@ -32,7 +34,7 @@ func executeTests(paths []string, params RunParameters, testLog *progress.Progre
 				defer func() {
 					jobQueue <- jobID
 				}()
-				returnChan <- testcase.Execute(curTest, testcase.TestParameters{
+				returnChan <- testcase.Execute(ctx, curTest, testcase.TestParameters{
 					JobID:   jobID,
 					RunID:   run.ID,
 					TestID:  id.NewTestID(),
