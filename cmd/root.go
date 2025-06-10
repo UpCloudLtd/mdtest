@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"runtime"
 	"time"
 
@@ -11,8 +10,10 @@ import (
 )
 
 var (
-	numberOfJobs  int
-	timeoutString string
+	name         string
+	numberOfJobs int
+	timeout      time.Duration
+	junitXML     string
 
 	rootCmd = &cobra.Command{
 		Use:   "mdtest [flags] path ...",
@@ -24,20 +25,19 @@ var (
 
 func init() {
 	rootCmd.Flags().IntVarP(&numberOfJobs, "jobs", "j", runtime.NumCPU()*2, "number of jobs to use for executing tests in parallel")
-	rootCmd.Flags().StringVar(&timeoutString, "timeout", "", "timeout for the test run as a `duration` string, e.g., 1s, 1m, 1h")
+	rootCmd.Flags().StringVar(&name, "name", "", "name for the testsuite to be printed into the console and to be used as the testsuite name in JUnit XML report")
+	rootCmd.Flags().StringVarP(&junitXML, "junit-xml", "x", "", "generate JUnit XML report to the specified `path`")
+	rootCmd.Flags().DurationVar(&timeout, "timeout", 0, "timeout for the test run as a `duration` string, e.g., 1s, 1m, 1h")
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
 
-		timeout, err := time.ParseDuration(timeoutString)
-		if err != nil && timeoutString != "" {
-			return fmt.Errorf("failed to parse timeout: %w", err)
-		}
-
 		params := testrun.RunParameters{
+			Name:         name,
 			NumberOfJobs: numberOfJobs,
 			OutputTarget: rootCmd.OutOrStdout(),
 			Timeout:      timeout,
+			JUnitXML:     junitXML,
 		}
 
 		res := testrun.Execute(args, params)
