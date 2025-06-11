@@ -10,7 +10,7 @@ type envStep struct {
 }
 
 func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
-	t.Env = append(t.Env, s.envUpdates...)
+	t.Env[EnvSourceTestcase] = append(t.Env[EnvSourceTestcase], s.envUpdates...)
 
 	return StepResult{
 		Success: true,

@@ -17,7 +17,7 @@ func testdataExpectedJUnitXML() string {
 	if runtime.GOOS == "windows" {
 		timeoutExitCodeFailure = "\n    <failure>expected exit code 0, got 3221225786</failure>"
 	}
-	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="6" failures="3" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
+	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="7" failures="4" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
   <testcase classname="Test JUnit XML output" name="Fail: expected 0, got 3" time="ELAPSED">
     <failure>expected exit code 0, got 3</failure>
     <system-out># Step 1:&#xA;+ exit 3&#xA;</system-out>
@@ -28,6 +28,10 @@ func testdataExpectedJUnitXML() string {
   </testcase>
   <testcase classname="Test JUnit XML output" name="Fail: invalid test step">
     <error>could not parse test step (unexpected EOF)</error>
+  </testcase>
+  <testcase classname="Test JUnit XML output" name="Fail: test environment variable values" time="ELAPSED">
+    <failure>expected exit code 0, got 1</failure>
+    <system-out># Step 1:&#xA;berry=banana&#xA;fruit=apple&#xA;# Step 2:&#xA;+ test banana = strawberry&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Success: expected 0, got 0" time="ELAPSED">
     <system-out># Step 1:&#xA;+ exit 0&#xA;</system-out>
@@ -62,10 +66,10 @@ func readJUnitXML(t *testing.T, path string) string {
 
 func TestRoot_testdata(t *testing.T) {
 	for _, test := range []struct {
-		testPath string
-		exitCode int
-		name     string
-		junitXML string
+		testPath  string
+		exitCode  int
+		extraArgs []string
+		junitXML  string
 	}{
 		{
 			testPath: "../testdata/fail_expected_0_got_3.md",
@@ -84,18 +88,32 @@ func TestRoot_testdata(t *testing.T) {
 			exitCode: 0,
 		},
 		{
-			testPath: "../testdata",
-			exitCode: 4,
-			name:     "Test JUnit XML output",
-			junitXML: testdataExpectedJUnitXML(),
+			testPath:  "../testdata",
+			exitCode:  5,
+			extraArgs: []string{"--name", "Test JUnit XML output"},
+			junitXML:  testdataExpectedJUnitXML(),
+		},
+		{
+			testPath: "../testdata/fail_test_environment_variable_values.md",
+			exitCode: 1,
+		},
+		{
+			testPath:  "../testdata/fail_test_environment_variable_values.md",
+			extraArgs: []string{"-e", "berry=strawberry"},
+			exitCode:  1,
+		},
+		{
+			testPath:  "../testdata/fail_test_environment_variable_values.md",
+			extraArgs: []string{"-e", "berry=strawberry", "--env", "fruit=orange"},
+			exitCode:  0,
 		},
 	} {
 		test := test
 		t.Run(test.testPath, func(t *testing.T) {
 			args := []string{"--timeout", "1s"}
 
-			if test.name != "" {
-				args = append(args, "--name", test.name)
+			if len(test.extraArgs) > 0 {
+				args = append(args, test.extraArgs...)
 			}
 
 			junitPath := ""

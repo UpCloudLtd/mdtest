@@ -35,10 +35,11 @@ func executeTests(ctx context.Context, paths []string, params RunParameters, tes
 					jobQueue <- jobID
 				}()
 				returnChan <- testcase.Execute(ctx, curTest, testcase.TestParameters{
-					JobID:   jobID,
-					RunID:   run.ID,
-					TestID:  id.NewTestID(),
-					TestLog: testLog,
+					EnvOverride: params.Env,
+					JobID:       jobID,
+					RunID:       run.ID,
+					TestID:      id.NewTestID(),
+					TestLog:     testLog,
 				})
 			}(curJobID, curTest)
 		case res := <-returnChan:

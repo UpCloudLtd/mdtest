@@ -25,7 +25,7 @@ func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
 		return utils.Terminate(cmd)
 	}
 	cmd.Dir = getTestDirPath(t.Params)
-	cmd.Env = t.Env
+	cmd.Env = t.GetEnv()
 	utils.UseProcessGroup(cmd)
 
 	output, err := cmd.CombinedOutput()
