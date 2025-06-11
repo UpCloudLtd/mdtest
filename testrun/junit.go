@@ -37,7 +37,7 @@ func readTestsuite(run RunResult) junitTestsuite {
 		Name:      run.Name,
 		Tests:     len(run.TestResults),
 		Time:      run.Finished.Sub(run.Started).Seconds(),
-		Timestamp: run.Started.Format("2006-01-02T15:04:05Z07:00"),
+		Timestamp: run.Started.UTC().Format("2006-01-02T15:04:05.000000"),
 	}
 
 	var errors, failures int
