@@ -17,6 +17,7 @@ import (
 )
 
 type RunParameters struct {
+	Env          []string
 	JUnitXML     string
 	Name         string
 	NumberOfJobs int

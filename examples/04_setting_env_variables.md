@@ -22,3 +22,5 @@ The variable is now defined in following test steps.
 test -n "$example_var"
 test -n "$another_var"
 ```
+
+The environment variables defined in `env` code-block can be overridden by defining environment variable with the same name in the `mdtest` command using `-e`/`--env` parameter, for example `--env TARGET=TEST`.

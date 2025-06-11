@@ -15,29 +15,53 @@ import (
 	"github.com/UpCloudLtd/progress/messages"
 )
 
+type EnvSource string
+
+const (
+	EnvSourceBuiltIn  EnvSource = "builtin"
+	EnvSourceCommand  EnvSource = "command"
+	EnvSourceEnviron  EnvSource = "environ"
+	EnvSourceTestcase EnvSource = "testcase"
+)
+
 type testStatus struct {
 	Params TestParameters
-	Env    []string
+	Env    map[EnvSource][]string
+}
+
+func (t *testStatus) GetEnv() []string {
+	env := t.Env[EnvSourceEnviron]
+	env = append(env, t.Env[EnvSourceTestcase]...)
+	env = append(env, t.Env[EnvSourceCommand]...)
+	env = append(env, t.Env[EnvSourceBuiltIn]...)
+	return env
 }
 
 func NewTestStatus(params TestParameters) testStatus {
-	return testStatus{
-		Env: append(os.Environ(),
-			fmt.Sprintf("MDTEST_JOBID=%d", params.JobID),
-			"MDTEST_RUNID="+params.RunID,
-			"MDTEST_TESTID="+params.TestID,
-			"MDTEST_VERSION="+globals.Version,
-			"MDTEST_WORKSPACE="+getTestDirPath(params),
-		),
+	status := testStatus{
+		Env:    make(map[EnvSource][]string),
 		Params: params,
 	}
+
+	status.Env[EnvSourceEnviron] = os.Environ()
+	status.Env[EnvSourceBuiltIn] = []string{
+		fmt.Sprintf("MDTEST_JOBID=%d", params.JobID),
+		"MDTEST_RUNID=" + params.RunID,
+		"MDTEST_TESTID=" + params.TestID,
+		"MDTEST_VERSION=" + globals.Version,
+		"MDTEST_WORKSPACE=" + getTestDirPath(params),
+	}
+	status.Env[EnvSourceCommand] = params.EnvOverride
+
+	return status
 }
 
 type TestParameters struct {
-	JobID   int
-	RunID   string
-	TestID  string
-	TestLog *progress.Progress
+	EnvOverride []string
+	JobID       int
+	RunID       string
+	TestID      string
+	TestLog     *progress.Progress
 }
 
 type TestResult struct {
