@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/UpCloudLtd/mdtest/globals"
 	"github.com/UpCloudLtd/mdtest/utils"
@@ -40,6 +41,9 @@ type TestParameters struct {
 }
 
 type TestResult struct {
+	Name         string
+	Started      time.Time
+	Finished     time.Time
 	Success      bool
 	SuccessCount int
 	FailureCount int
@@ -48,10 +52,11 @@ type TestResult struct {
 	Error        error
 }
 
-func parse(path string) ([]Step, error) {
+func parse(path string) (string, []Step, error) {
+	name := path
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf(`failed to open test file at "%s" (%w)`, path, err)
+		return name, nil, fmt.Errorf(`failed to open test file at "%s" (%w)`, path, err)
 	}
 	defer file.Close()
 
@@ -59,10 +64,15 @@ func parse(path string) ([]Step, error) {
 	steps := []Step{}
 	for scanner.Scan() {
 		line := scanner.Text()
+		if name == path && strings.HasPrefix(line, "# ") {
+			name = strings.TrimPrefix(line, "# ")
+			name = strings.TrimSpace(name)
+		}
+
 		if strings.HasPrefix(line, "```") {
 			step, err := parseStep(scanner)
 			if err != nil {
-				return nil, err
+				return name, nil, err
 			}
 			if step != nil {
 				steps = append(steps, step)
@@ -70,7 +80,7 @@ func parse(path string) ([]Step, error) {
 		}
 	}
 
-	return steps, nil
+	return name, steps, nil
 }
 
 func getTestDirPath(params TestParameters) string {
@@ -125,36 +135,41 @@ func getFailureDetails(test TestResult) string {
 	return details
 }
 
+func errorMessage(key string, err error) messages.Update {
+	return messages.Update{
+		Key:     key,
+		Status:  messages.MessageStatusError,
+		Details: fmt.Sprintf("Error: %s", err.Error()),
+	}
+}
+
 func Execute(ctx context.Context, path string, params TestParameters) TestResult {
 	testLog := params.TestLog
+	started := time.Now()
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Parsing %s", path), Status: messages.MessageStatusStarted})
 
-	steps, err := parse(path)
+	name, steps, err := parse(path)
 	if err != nil {
-		_ = testLog.Push(messages.Update{
-			Key:     path,
-			Status:  messages.MessageStatusError,
-			Details: fmt.Sprintf("Error: %s", err.Error()),
-		})
-		return TestResult{Error: err}
+		_ = testLog.Push(errorMessage(path, err))
+		return TestResult{Name: name, Error: err}
 	}
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Creating temporary directory for %s", path), Status: messages.MessageStatusStarted})
 
 	err = createTestDir(params)
 	if err != nil {
-		_ = testLog.Push(messages.Update{
-			Key:     path,
-			Status:  messages.MessageStatusError,
-			Details: fmt.Sprintf("Error: %s", err.Error()),
-		})
-		return TestResult{Error: err}
+		_ = testLog.Push(errorMessage(path, err))
+		return TestResult{Name: name, Error: err}
 	}
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
-	test := TestResult{StepsCount: len(steps)}
+	test := TestResult{
+		Name:       name,
+		Started:    started,
+		StepsCount: len(steps),
+	}
 	status := NewTestStatus(params)
 	for i, step := range steps {
 		_ = testLog.Push(messages.Update{
@@ -175,6 +190,7 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 		}
 	}
 
+	test.Finished = time.Now()
 	test.Success = test.SuccessCount == test.StepsCount
 	if test.Success {
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusSuccess})

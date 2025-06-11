@@ -14,6 +14,7 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 
 	return StepResult{
 		Success: true,
+		Output:  strings.Join(s.envUpdates, "\n"),
 	}
 }
 

@@ -13,9 +13,12 @@ import (
 	"github.com/UpCloudLtd/mdtest/testcase"
 	"github.com/UpCloudLtd/mdtest/utils"
 	"github.com/UpCloudLtd/progress"
+	"github.com/UpCloudLtd/progress/messages"
 )
 
 type RunParameters struct {
+	JUnitXML     string
+	Name         string
 	NumberOfJobs int
 	OutputTarget io.Writer
 	Timeout      time.Duration
@@ -23,12 +26,21 @@ type RunParameters struct {
 
 type RunResult struct {
 	ID           string
+	Name         string
 	Started      time.Time
 	Finished     time.Time
 	Success      bool
 	SuccessCount int
 	FailureCount int
 	TestResults  []testcase.TestResult
+}
+
+func PrintName(target io.Writer, name string) {
+	data := []output.SummaryItem{
+		{Key: "Name", Value: name},
+	}
+
+	fmt.Fprintf(target, "%s\n", output.SummaryTable((data)))
 }
 
 func PrintSummary(target io.Writer, run RunResult) {
@@ -50,6 +62,22 @@ func PrintSummary(target io.Writer, run RunResult) {
 	fmt.Fprintf(target, "\n%s", output.SummaryTable((data)))
 }
 
+func newRunResult(params RunParameters) RunResult {
+	started := time.Now()
+	runID := id.NewRunID()
+	name := params.Name
+	if name == "" {
+		name = runID
+	}
+
+	return RunResult{
+		ID:      runID,
+		Name:    name,
+		Started: started,
+		Success: true,
+	}
+}
+
 func Execute(rawPaths []string, params RunParameters) RunResult {
 	ctx, cancel := context.WithCancel(context.Background())
 	if params.Timeout > 0 {
@@ -57,7 +85,10 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 		defer cancel()
 	}
 
-	started := time.Now()
+	if params.Name != "" {
+		PrintName(params.OutputTarget, params.Name)
+	}
+
 	paths, warnings := utils.ParseFilePaths(rawPaths, 1)
 
 	testLog := progress.NewProgress(nil)
@@ -75,16 +106,27 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 		_ = testLog.Push(warning.Message())
 	}
 
-	run := RunResult{
-		ID:      id.NewRunID(),
-		Started: started,
-		Success: true,
-	}
+	run := newRunResult(params)
+
 	executeTests(ctx, paths, params, testLog, &run)
 
-	testLog.Stop()
 	run.Success = run.FailureCount == 0
 	run.Finished = time.Now()
+
+	if params.JUnitXML != "" {
+		warning := func(err error) messages.Update {
+			return messages.Update{
+				Message: "Generating JUnit XML report",
+				Details: fmt.Sprintf("Error: %s", err.Error()),
+				Status:  messages.MessageStatusWarning,
+			}
+		}
+		err := junitReport(run, params.JUnitXML)
+		if err != nil {
+			_ = testLog.Push(warning(err))
+		}
+	}
+	testLog.Stop()
 
 	PrintSummary(params.OutputTarget, run)
 	return run
