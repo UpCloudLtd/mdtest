@@ -25,7 +25,7 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().StringArrayVarP(&env, "env", "e", nil, "set environment variables for the test run in `key=value` format, e.g., `-e TARGET=test`. The variables set in the command will override the variables defined in the test files.")
+	rootCmd.Flags().StringArrayVarP(&env, "env", "e", nil, "set environment variables for the test run in `key=value` format, e.g., `-e TARGET=test`. The variables set in the command will override the variables defined in the test files")
 	rootCmd.Flags().IntVarP(&numberOfJobs, "jobs", "j", runtime.NumCPU()*2, "number of jobs to use for executing tests in parallel")
 	rootCmd.Flags().StringVar(&name, "name", "", "name for the testsuite to be printed into the console and to be used as the testsuite name in JUnit XML report")
 	rootCmd.Flags().StringVarP(&junitXML, "junit-xml", "x", "", "generate JUnit XML report to the specified `path`")
