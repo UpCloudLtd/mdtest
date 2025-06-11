@@ -18,24 +18,24 @@ func testdataExpectedJUnitXML() string {
 		timeoutExitCodeFailure = "\n    <failure>expected exit code 0, got 3221225786</failure>"
 	}
 	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="6" failures="3" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
-  <testcase name="Fail: expected 0, got 3" time="ELAPSED">
+  <testcase classname="Test JUnit XML output" name="Fail: expected 0, got 3" time="ELAPSED">
     <failure>expected exit code 0, got 3</failure>
     <system-out># Step 1:&#xA;+ exit 3&#xA;</system-out>
   </testcase>
-  <testcase name="Fail: expected 1, got 0" time="ELAPSED">
+  <testcase classname="Test JUnit XML output" name="Fail: expected 1, got 0" time="ELAPSED">
     <failure>expected exit code 1, got 0</failure>
     <system-out># Step 1:&#xA;+ exit 0&#xA;</system-out>
   </testcase>
-  <testcase name="Fail: invalid test step">
+  <testcase classname="Test JUnit XML output" name="Fail: invalid test step">
     <error>could not parse test step (unexpected EOF)</error>
   </testcase>
-  <testcase name="Success: expected 0, got 0" time="ELAPSED">
+  <testcase classname="Test JUnit XML output" name="Success: expected 0, got 0" time="ELAPSED">
     <system-out># Step 1:&#xA;+ exit 0&#xA;</system-out>
   </testcase>
-  <testcase name="Success: normalise info texts" time="ELAPSED">
+  <testcase classname="Test JUnit XML output" name="Success: normalise info texts" time="ELAPSED">
     <system-out># Step 1:&#xA;# No output</system-out>
   </testcase>
-  <testcase name="Sleep" time="ELAPSED">
+  <testcase classname="Test JUnit XML output" name="Sleep" time="ELAPSED">
     <failure>test run timeout exceeded</failure>%s
     <system-out># Step 1:&#xA;+ sleep 600&#xA;</system-out>
   </testcase>

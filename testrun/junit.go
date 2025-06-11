@@ -10,6 +10,7 @@ import (
 )
 
 type junitTestcase struct {
+	Classname string   `xml:"classname,attr,omitempty"`
 	Name      string   `xml:"name,attr"`
 	Failure   []string `xml:"failure,omitempty"`
 	Error     []string `xml:"error,omitempty"`
@@ -43,8 +44,9 @@ func readTestsuite(run RunResult) junitTestsuite {
 	var errors, failures int
 	for _, result := range run.TestResults {
 		testcase := junitTestcase{
-			Name: result.Name,
-			Time: result.Finished.Sub(result.Started).Seconds(),
+			Classname: run.Name,
+			Name:      result.Name,
+			Time:      result.Finished.Sub(result.Started).Seconds(),
 		}
 
 		if result.Error != nil {
