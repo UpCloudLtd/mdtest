@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/UpCloudLtd/mdtest/globals"
 	"github.com/UpCloudLtd/mdtest/utils"
@@ -41,6 +42,8 @@ type TestParameters struct {
 
 type TestResult struct {
 	Name         string
+	Started      time.Time
+	Finished     time.Time
 	Success      bool
 	SuccessCount int
 	FailureCount int
@@ -132,18 +135,23 @@ func getFailureDetails(test TestResult) string {
 	return details
 }
 
+func errorMessage(key string, err error) messages.Update {
+	return messages.Update{
+		Key:     key,
+		Status:  messages.MessageStatusError,
+		Details: fmt.Sprintf("Error: %s", err.Error()),
+	}
+}
+
 func Execute(ctx context.Context, path string, params TestParameters) TestResult {
 	testLog := params.TestLog
+	started := time.Now()
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Parsing %s", path), Status: messages.MessageStatusStarted})
 
 	name, steps, err := parse(path)
 	if err != nil {
-		_ = testLog.Push(messages.Update{
-			Key:     path,
-			Status:  messages.MessageStatusError,
-			Details: fmt.Sprintf("Error: %s", err.Error()),
-		})
+		_ = testLog.Push(errorMessage(path, err))
 		return TestResult{Name: name, Error: err}
 	}
 
@@ -151,17 +159,17 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 	err = createTestDir(params)
 	if err != nil {
-		_ = testLog.Push(messages.Update{
-			Key:     path,
-			Status:  messages.MessageStatusError,
-			Details: fmt.Sprintf("Error: %s", err.Error()),
-		})
+		_ = testLog.Push(errorMessage(path, err))
 		return TestResult{Name: name, Error: err}
 	}
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
-	test := TestResult{Name: name, StepsCount: len(steps)}
+	test := TestResult{
+		Name:       name,
+		Started:    started,
+		StepsCount: len(steps),
+	}
 	status := NewTestStatus(params)
 	for i, step := range steps {
 		_ = testLog.Push(messages.Update{
@@ -182,6 +190,7 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 		}
 	}
 
+	test.Finished = time.Now()
 	test.Success = test.SuccessCount == test.StepsCount
 	if test.Success {
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusSuccess})

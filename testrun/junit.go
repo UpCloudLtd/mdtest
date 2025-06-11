@@ -43,8 +43,8 @@ func readTestsuite(run RunResult) junitTestsuite {
 	var errors, failures int
 	for _, result := range run.TestResults {
 		testcase := junitTestcase{
-			Name:    result.Name,
-			Failure: []string{},
+			Name: result.Name,
+			Time: result.Finished.Sub(result.Started).Seconds(),
 		}
 
 		if result.Error != nil {
