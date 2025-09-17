@@ -1,5 +1,7 @@
 # mdtest
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/UpCloudLtd/mdtest/badge)](https://scorecard.dev/viewer/?uri=github.com%2FUpCloudLtd%2Fmdtest)
+
 Tool for combining examples and test cases. Parses markdown files for test steps defined as code blocks and uses these to test command line applications.
 
 ## Usage
