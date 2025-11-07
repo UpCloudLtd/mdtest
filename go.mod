@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/UpCloudLtd/progress v1.0.3
-	github.com/jedib0t/go-pretty/v6 v6.6.9
+	github.com/jedib0t/go-pretty/v6 v6.7.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 )
