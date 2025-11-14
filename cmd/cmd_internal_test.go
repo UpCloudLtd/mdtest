@@ -17,7 +17,7 @@ func testdataExpectedJUnitXML() string {
 	if runtime.GOOS == "windows" {
 		timeoutExitCodeFailure = "\n    <failure>expected exit code 0, got 3221225786</failure>"
 	}
-	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="7" failures="4" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
+	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="8" failures="5" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
   <testcase classname="Test JUnit XML output" name="Fail: expected 0, got 3" time="ELAPSED">
     <failure>expected exit code 0, got 3</failure>
     <system-out># Step 1:&#xA;+ exit 3&#xA;</system-out>
@@ -33,6 +33,12 @@ func testdataExpectedJUnitXML() string {
     <failure>expected exit code 0, got 1</failure>
     <system-out># Step 1:&#xA;berry=banana&#xA;fruit=apple&#xA;# Step 2:&#xA;+ test banana = strawberry&#xA;</system-out>
   </testcase>
+  <testcase classname="Test JUnit XML output" name="Fail: failing step, skipped step, and (failing) cleanup step" time="ELAPSED">
+    <failure>expected exit code 0, got 4</failure>
+    <failure>expected exit code 0, got 2</failure>
+    <failure>expected exit code 0, got 1</failure>
+    <system-out># Step 1:&#xA;+ exit 4&#xA;# Step 2:&#xA;# No output# Step 3:&#xA;+ exit 2&#xA;# Step 4:&#xA;+ exit 1&#xA;</system-out>
+  </testcase>
   <testcase classname="Test JUnit XML output" name="Success: expected 0, got 0" time="ELAPSED">
     <system-out># Step 1:&#xA;+ exit 0&#xA;</system-out>
   </testcase>
@@ -41,7 +47,7 @@ func testdataExpectedJUnitXML() string {
   </testcase>
   <testcase classname="Test JUnit XML output" name="Sleep" time="ELAPSED">
     <failure>test run timeout exceeded</failure>%s
-    <system-out># Step 1:&#xA;+ sleep 600&#xA;</system-out>
+    <system-out># Step 1:&#xA;+ sleep 600&#xA;# Step 2:&#xA;# No output</system-out>
   </testcase>
 </testsuite>`, timeoutExitCodeFailure)
 }
@@ -84,12 +90,16 @@ func TestRoot_testdata(t *testing.T) {
 			exitCode: 1,
 		},
 		{
+			testPath: "../testdata/fail_with_cleanup.md",
+			exitCode: 1,
+		},
+		{
 			testPath: "../testdata/success_expected_0_got_0.md",
 			exitCode: 0,
 		},
 		{
 			testPath:  "../testdata",
-			exitCode:  5,
+			exitCode:  6,
 			extraArgs: []string{"--name", "Test JUnit XML output"},
 			junitXML:  testdataExpectedJUnitXML(),
 		},

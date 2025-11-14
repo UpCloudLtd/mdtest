@@ -7,6 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func stringPtr(s string) *string {
+	return &s
+}
+
 func TestParseOptions(t *testing.T) {
 	t.Parallel()
 
@@ -14,33 +18,33 @@ func TestParseOptions(t *testing.T) {
 		name            string
 		input           string
 		expectedLang    string
-		expectedOptions map[string]string
+		expectedOptions utils.Options
 	}{
 		{
 			name:         "plain value",
 			input:        `sh exit_code=313`,
 			expectedLang: "sh",
-			expectedOptions: map[string]string{
-				"exit_code": "313",
+			expectedOptions: utils.Options{
+				"exit_code": stringPtr("313"),
 			},
 		},
 		{
 			name:         "quoted value",
 			input:        `py filename="example.py"`,
 			expectedLang: "py",
-			expectedOptions: map[string]string{
-				"filename": "example.py",
+			expectedOptions: utils.Options{
+				"filename": stringPtr("example.py"),
 			},
 		},
 		{
 			name:         "empty values",
 			input:        `txt no_value empty_double_quotes="" empty= empty_single_quotes=''`,
 			expectedLang: "txt",
-			expectedOptions: map[string]string{
-				"empty":               "",
-				"no_value":            "",
-				"empty_single_quotes": "",
-				"empty_double_quotes": "",
+			expectedOptions: utils.Options{
+				"empty":               stringPtr(""),
+				"no_value":            nil,
+				"empty_single_quotes": stringPtr(""),
+				"empty_double_quotes": stringPtr(""),
 			},
 		},
 	} {
