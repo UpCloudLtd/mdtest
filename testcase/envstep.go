@@ -18,6 +18,10 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 	}
 }
 
+func (s envStep) IsCleanup() bool {
+	return false
+}
+
 func parseEnvStep(_ map[string]string, content string) (Step, error) {
 	return envStep{envUpdates: strings.Split(content, "\n")}, nil
 }

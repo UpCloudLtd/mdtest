@@ -48,6 +48,10 @@ func (s filenameStep) Execute(_ context.Context, t *testStatus) StepResult {
 	}
 }
 
+func (s filenameStep) IsCleanup() bool {
+	return false
+}
+
 func parseFilenameStep(options map[string]string, content string) (Step, error) {
 	return filenameStep{content: content, filename: options["filename"]}, nil
 }

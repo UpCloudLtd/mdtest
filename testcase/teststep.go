@@ -17,6 +17,7 @@ type StepResult struct {
 
 type Step interface {
 	Execute(context.Context, *testStatus) StepResult
+	IsCleanup() bool
 }
 
 func parseCodeBlock(lang string, options map[string]string, content string) (Step, error) {
