@@ -63,6 +63,10 @@ func ParseFilePaths(rawPaths []string, depth int) ([]string, []PathWarning) {
 	return paths, warnings
 }
 
+func OptionToBoolean(value string) bool {
+	return strings.ToLower(value) == "true"
+}
+
 func ParseOptions(optionsStr string) (string, map[string]string) {
 	optionsList := strings.Split(optionsStr, " ")
 	options := make(map[string]string)
