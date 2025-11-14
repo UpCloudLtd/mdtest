@@ -81,9 +81,9 @@ func (s shStep) IsCleanup() bool {
 	return s.cleanup
 }
 
-func parseShStep(options map[string]string, content string) (Step, error) {
-	exitCode, _ := strconv.Atoi(options["exit_code"])
-	cleanup := utils.OptionToBoolean(options["cleanup"])
+func parseShStep(options utils.Options, content string) (Step, error) {
+	exitCode, _ := strconv.Atoi(options.GetString("exit_code"))
+	cleanup := options.GetBoolean("cleanup")
 
 	return shStep{script: content, cleanup: cleanup, exitCode: exitCode}, nil
 }

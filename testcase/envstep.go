@@ -3,6 +3,8 @@ package testcase
 import (
 	"context"
 	"strings"
+
+	"github.com/UpCloudLtd/mdtest/utils"
 )
 
 type envStep struct {
@@ -22,6 +24,6 @@ func (s envStep) IsCleanup() bool {
 	return false
 }
 
-func parseEnvStep(_ map[string]string, content string) (Step, error) {
+func parseEnvStep(_ utils.Options, content string) (Step, error) {
 	return envStep{envUpdates: strings.Split(content, "\n")}, nil
 }

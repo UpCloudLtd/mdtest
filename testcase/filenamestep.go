@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/UpCloudLtd/mdtest/utils"
 )
 
 type filenameStep struct {
@@ -52,6 +54,6 @@ func (s filenameStep) IsCleanup() bool {
 	return false
 }
 
-func parseFilenameStep(options map[string]string, content string) (Step, error) {
-	return filenameStep{content: content, filename: options["filename"]}, nil
+func parseFilenameStep(options utils.Options, content string) (Step, error) {
+	return filenameStep{content: content, filename: options.GetString("filename")}, nil
 }

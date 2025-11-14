@@ -63,26 +63,50 @@ func ParseFilePaths(rawPaths []string, depth int) ([]string, []PathWarning) {
 	return paths, warnings
 }
 
-func OptionToBoolean(value string) bool {
-	return strings.ToLower(value) == "true"
+type Options map[string]*string
+
+func (o Options) GetString(key string) string {
+	val := o[key]
+	if val == nil {
+		return ""
+	}
+	return *val
 }
 
-func ParseOptions(optionsStr string) (string, map[string]string) {
+func (o Options) GetBoolean(key string) bool {
+	val, ok := o[key]
+
+	// Option not set
+	if !ok {
+		return false
+	}
+
+	// Option set but no value, e.g. "cleanup"
+	if val == nil {
+		return true
+	}
+
+	// Option set with a value, e.g. "cleanup=true"
+	return strings.ToLower(*val) == "true"
+}
+
+func ParseOptions(optionsStr string) (string, Options) {
 	optionsList := strings.Split(optionsStr, " ")
-	options := make(map[string]string)
+	options := make(Options)
 
 	lang := optionsList[0]
 	for _, option := range optionsList[1:] {
 		items := strings.SplitN(option, "=", 2)
 
 		key := items[0]
-		value := ""
+		var value *string = nil
 		if len(items) > 1 {
-			value = items[1]
+			value = &items[1]
 		}
 
-		if quotedValueRegex.MatchString(value) {
-			value = value[1 : len(value)-1]
+		if value != nil && quotedValueRegex.MatchString(*value) {
+			str := (*value)[1 : len(*value)-1]
+			value = &str
 		}
 
 		options[key] = value

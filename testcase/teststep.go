@@ -20,8 +20,8 @@ type Step interface {
 	IsCleanup() bool
 }
 
-func parseCodeBlock(lang string, options map[string]string, content string) (Step, error) {
-	if options["filename"] != "" {
+func parseCodeBlock(lang string, options utils.Options, content string) (Step, error) {
+	if options.GetString("filename") != "" {
 		return parseFilenameStep(options, content)
 	}
 
