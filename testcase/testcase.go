@@ -205,21 +205,21 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 			ProgressMessage: fmt.Sprintf("(Step %d of %d)", i+1, len(steps)),
 		})
 
+		if err := ctx.Err(); err != nil {
+			test.Error = utils.GetContextError(err)
+		}
+
 		if test.FailureCount > 0 && !step.IsCleanup() {
 			test.Results = append(test.Results, StepResult{})
 			continue
 		}
 
-		if err := ctx.Err(); err == nil {
-			res := step.Execute(ctx, &status)
-			test.Results = append(test.Results, res)
-			if res.Success {
-				test.SuccessCount++
-			} else {
-				test.FailureCount++
-			}
+		res := step.Execute(ctx, &status)
+		test.Results = append(test.Results, res)
+		if res.Success {
+			test.SuccessCount++
 		} else {
-			test.Error = utils.GetContextError(err)
+			test.FailureCount++
 		}
 	}
 
