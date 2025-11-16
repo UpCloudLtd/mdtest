@@ -161,6 +161,7 @@ linters:
               - VIP
               - VLAN
               - VRF
+            - - skip-package-name-checks: true
   exclusions:
     generated: lax
     presets:
