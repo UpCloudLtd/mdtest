@@ -12,7 +12,15 @@ import (
 
 type shStep struct {
 	script   string
+	cleanup  bool
 	exitCode int
+}
+
+func (s shStep) shParams() string {
+	if s.cleanup {
+		return "-xc"
+	}
+	return "-xec"
 }
 
 func unexpectedExitCode(expected, got int) error {
@@ -20,7 +28,7 @@ func unexpectedExitCode(expected, got int) error {
 }
 
 func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
-	cmd := exec.CommandContext(ctx, "sh", "-xec", s.script) //nolint:gosec // Here we trust that the user knows what their tests do
+	cmd := exec.CommandContext(ctx, "sh", s.shParams(), s.script) //nolint:gosec // Here we trust that the user knows what their tests do
 	cmd.Cancel = func() error {
 		return utils.Terminate(cmd)
 	}
@@ -69,8 +77,13 @@ func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
 	}
 }
 
-func parseShStep(options map[string]string, content string) (Step, error) {
-	exitCode, _ := strconv.Atoi(options["exit_code"])
+func (s shStep) IsCleanup() bool {
+	return s.cleanup
+}
 
-	return shStep{script: content, exitCode: exitCode}, nil
+func parseShStep(options utils.Options, content string) (Step, error) {
+	exitCode, _ := strconv.Atoi(options.GetString("exit_code"))
+	cleanup := options.GetBoolean("cleanup")
+
+	return shStep{script: content, cleanup: cleanup, exitCode: exitCode}, nil
 }

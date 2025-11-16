@@ -76,6 +76,10 @@ type TestResult struct {
 	Error        error
 }
 
+func (t TestResult) SkippedCount() int {
+	return t.StepsCount - t.SuccessCount - t.FailureCount
+}
+
 func parse(path string) (string, []Step, error) {
 	name := path
 	file, err := os.Open(path)
@@ -151,7 +155,7 @@ func getFailureDetails(test TestResult) string {
 
 	details += fmt.Sprintf("\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount)
 
-	skippedCount := test.StepsCount - test.SuccessCount - test.FailureCount
+	skippedCount := test.SkippedCount()
 	if skippedCount > 0 {
 		details += fmt.Sprintf(" (%d skipped)", skippedCount)
 	}
@@ -201,16 +205,21 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 			ProgressMessage: fmt.Sprintf("(Step %d of %d)", i+1, len(steps)),
 		})
 
-		if err := ctx.Err(); err == nil {
-			res := step.Execute(ctx, &status)
-			test.Results = append(test.Results, res)
-			if res.Success {
-				test.SuccessCount++
-			} else {
-				test.FailureCount++
-			}
-		} else {
+		if err := ctx.Err(); err != nil {
 			test.Error = utils.GetContextError(err)
+		}
+
+		if test.FailureCount > 0 && !step.IsCleanup() {
+			test.Results = append(test.Results, StepResult{})
+			continue
+		}
+
+		res := step.Execute(ctx, &status)
+		test.Results = append(test.Results, res)
+		if res.Success {
+			test.SuccessCount++
+		} else {
+			test.FailureCount++
 		}
 	}
 
