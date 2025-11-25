@@ -81,12 +81,12 @@ func quoteValue(value, quoteValues string) string {
 	return value
 }
 
-func transformOptions(options, transforms map[string]string, quoteValues string) string {
+func transformOptions(options Options, transforms map[string]string, quoteValues string) string {
 	output := ""
 	for key, value := range options {
 		if newKey := transforms[key]; newKey != "" {
-			if value != "" {
-				output += fmt.Sprintf(" %s=%s", newKey, quoteValue(value, quoteValues))
+			if value != nil {
+				output += fmt.Sprintf(" %s=%s", newKey, quoteValue(*value, quoteValues))
 			} else {
 				output += fmt.Sprintf(" %s", newKey)
 			}

@@ -17,10 +17,11 @@ type StepResult struct {
 
 type Step interface {
 	Execute(context.Context, *testStatus) StepResult
+	IsCleanup() bool
 }
 
-func parseCodeBlock(lang string, options map[string]string, content string) (Step, error) {
-	if options["filename"] != "" {
+func parseCodeBlock(lang string, options utils.Options, content string) (Step, error) {
+	if options.GetString("filename") != "" {
 		return parseFilenameStep(options, content)
 	}
 

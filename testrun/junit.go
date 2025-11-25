@@ -59,7 +59,7 @@ func readTestsuite(run RunResult) junitTestsuite {
 		}
 
 		for i, step := range result.Results {
-			if !step.Success {
+			if !step.Success && step.Error != nil {
 				msg := step.Error.Error()
 				if !slices.Contains(testcase.Failure, msg) {
 					testcase.Failure = append(testcase.Failure, msg)
