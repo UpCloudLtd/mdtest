@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	optionRegex      = regexp.MustCompile(`([^=\s]+(=(["'][^"']*["'])|\S+){0,1})`)
+	optionRegex      = regexp.MustCompile(`([^=\s]+(=(('[^']*')|("[^"]*"))|\S+){0,1})`)
 	quotedValueRegex = regexp.MustCompile(`^["'](.*)["']$`)
 )
 
@@ -90,7 +90,7 @@ func (o Options) GetBoolean(key string) bool {
 	}
 
 	// Option set with a value, e.g. "cleanup=true"
-	return strings.ToLower(*val) == "true"
+	return strings.EqualFold(*val, "true")
 }
 
 func splitOptions(optionsStr string) []string {
