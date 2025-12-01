@@ -37,7 +37,7 @@ func testdataExpectedJUnitXML() string {
     <failure>expected exit code 0, got 4</failure>
     <failure>expected exit code 0, got 2</failure>
     <failure>expected exit code 0, got 1</failure>
-    <system-out># Step 1:&#xA;+ exit 4&#xA;# Step 2:&#xA;# No output&#xA;# Step 3:&#xA;+ exit 2&#xA;# Step 4:&#xA;+ exit 1&#xA;</system-out>
+    <system-out># Step 1:&#xA;+ exit 4&#xA;# Step 2:&#xA;# Skipped&#xA;# Step 3:&#xA;+ exit 2&#xA;# Step 4:&#xA;+ exit 1&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Success: expected 0, got 0" time="ELAPSED">
     <system-out># Step 1:&#xA;+ exit 0&#xA;</system-out>
@@ -50,7 +50,7 @@ func testdataExpectedJUnitXML() string {
   </testcase>
   <testcase classname="Test JUnit XML output" name="Sleep" time="ELAPSED">
     <failure>test run timeout exceeded</failure>%s
-    <system-out># Step 1:&#xA;+ sleep 600&#xA;# Step 2:&#xA;# No output&#xA;</system-out>
+    <system-out># Step 1:&#xA;+ sleep 600&#xA;# Step 2:&#xA;# Skipped&#xA;</system-out>
   </testcase>
 </testsuite>`, timeoutExitCodeFailure)
 }

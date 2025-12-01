@@ -179,6 +179,13 @@ func getFailureDetails(test TestResult) string {
 	return details
 }
 
+func stepsProgressMessage(path string, i, total int) messages.Update {
+	return messages.Update{
+		Key:             path,
+		ProgressMessage: fmt.Sprintf("(Step %d of %d)", i+1, total),
+	}
+}
+
 func errorMessage(key string, err error) messages.Update {
 	return messages.Update{
 		Key:     key,
@@ -216,17 +223,14 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 	}
 	status := NewTestStatus(params)
 	for i, step := range steps {
-		_ = testLog.Push(messages.Update{
-			Key:             path,
-			ProgressMessage: fmt.Sprintf("(Step %d of %d)", i+1, len(steps)),
-		})
+		_ = testLog.Push(stepsProgressMessage(path, i, len(steps)))
 
 		if err := ctx.Err(); err != nil {
 			test.Error = utils.GetContextError(err)
 		}
 
 		if test.FailureCount > 0 && !step.IsCleanup() {
-			test.Results = append(test.Results, StepResult{})
+			test.Results = append(test.Results, StepResult{Status: StepStatusSkipped})
 			continue
 		}
 
@@ -237,6 +241,8 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 			test.SuccessCount++
 		case StepStatusFailure:
 			test.FailureCount++
+		case StepStatusSkipped:
+			// No action
 		}
 	}
 
