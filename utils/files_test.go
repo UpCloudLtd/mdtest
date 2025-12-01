@@ -37,6 +37,15 @@ func TestParseOptions(t *testing.T) {
 			},
 		},
 		{
+			name:         "quoted value with whitespace",
+			input:        `py description="wow, such code, much snake" filename='snake.py'`,
+			expectedLang: "py",
+			expectedOptions: utils.Options{
+				"filename":    stringP("snake.py"),
+				"description": stringP("wow, such code, much snake"),
+			},
+		},
+		{
 			name:         "empty values",
 			input:        `txt no_value empty_double_quotes="" empty= empty_single_quotes=''`,
 			expectedLang: "txt",
