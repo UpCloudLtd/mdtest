@@ -16,14 +16,16 @@ type filenameStep struct {
 	filename string
 }
 
+var _ Step = filenameStep{}
+
 func (s filenameStep) Execute(_ context.Context, t *testStatus) StepResult {
 	target := filepath.Join(getTestDirPath(t.Params), s.filename)
 	dir := filepath.Dir(target)
 	if _, err := os.Stat(dir); errors.Is(err, fs.ErrNotExist) {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return StepResult{
-				Success: false,
-				Error:   fmt.Errorf("failed to create directory: %w", err),
+				Status: StepStatusFailure,
+				Error:  fmt.Errorf("failed to create directory: %w", err),
 			}
 		}
 	}
@@ -31,8 +33,8 @@ func (s filenameStep) Execute(_ context.Context, t *testStatus) StepResult {
 	f, err := os.OpenFile(target, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o666)
 	if err != nil {
 		return StepResult{
-			Success: false,
-			Error:   fmt.Errorf("failed to open file: %w", err),
+			Status: StepStatusFailure,
+			Error:  fmt.Errorf("failed to open file: %w", err),
 		}
 	}
 
@@ -40,13 +42,13 @@ func (s filenameStep) Execute(_ context.Context, t *testStatus) StepResult {
 
 	if _, err = f.WriteString(s.content); err != nil {
 		return StepResult{
-			Success: false,
-			Error:   fmt.Errorf("failed to write code block content to file: %w", err),
+			Status: StepStatusFailure,
+			Error:  fmt.Errorf("failed to write code block content to file: %w", err),
 		}
 	}
 
 	return StepResult{
-		Success: true,
+		Status: StepStatusSuccess,
 	}
 }
 

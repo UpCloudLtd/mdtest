@@ -13,6 +13,8 @@ import (
 	"github.com/UpCloudLtd/mdtest/utils"
 	"github.com/UpCloudLtd/progress"
 	"github.com/UpCloudLtd/progress/messages"
+	"github.com/google/cel-go/cel"
+	"github.com/google/cel-go/common/types"
 )
 
 type EnvSource string
@@ -35,6 +37,20 @@ func (t *testStatus) GetEnv() []string {
 	env = append(env, t.Env[EnvSourceCommand]...)
 	env = append(env, t.Env[EnvSourceBuiltIn]...)
 	return env
+}
+
+func (t *testStatus) GetCelEnv() (*cel.Env, error) {
+	m := utils.EnvEntriesAsMap(t.GetEnv())
+	opts := make([]cel.EnvOption, 0, len(m))
+	for k, v := range m {
+		opts = append(opts, cel.Constant(k, cel.StringType, types.String(v)))
+	}
+
+	env, err := cel.NewEnv(opts...)
+	if err != nil {
+		err = fmt.Errorf("failed to initialize CEL environment: %w", err)
+	}
+	return env, err
 }
 
 func NewTestStatus(params TestParameters) testStatus {
@@ -216,15 +232,16 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 		res := step.Execute(ctx, &status)
 		test.Results = append(test.Results, res)
-		if res.Success {
+		switch res.Status {
+		case StepStatusSuccess:
 			test.SuccessCount++
-		} else {
+		case StepStatusFailure:
 			test.FailureCount++
 		}
 	}
 
 	test.Finished = time.Now()
-	test.Success = test.SuccessCount == test.StepsCount
+	test.Success = test.FailureCount == 0 && test.Error == nil
 	if test.Success {
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusSuccess})
 		_ = removeTestDir(params)
