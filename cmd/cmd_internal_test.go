@@ -14,6 +14,10 @@ import (
 
 func testdataExpectedJUnitXML() string {
 	timeoutExitCodeFailure := ""
+	xEchoCommandWithQuotes := "+ echo &#39;Environment variable VAR is set to VALUE&#39;"
+	if runtime.GOOS == "linux" {
+		xEchoCommandWithQuotes = "+ echo Environment variable VAR is set to VALUE"
+	}
 	if runtime.GOOS == "windows" {
 		timeoutExitCodeFailure = "\n    <failure>expected exit code 0, got 3221225786</failure>"
 	}
@@ -46,13 +50,13 @@ func testdataExpectedJUnitXML() string {
     <system-out># Step 1:&#xA;# No output&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Success: skip sh step with when expression" time="ELAPSED">
-    <system-out># Step 1:&#xA;+ exit 0&#xA;# Step 2:&#xA;# Skipped&#xA;# Step 3:&#xA;VAR=VALUE&#xA;# Step 4:&#xA;+ echo &#39;Environment variable VAR is set to VALUE&#39;&#xA;Environment variable VAR is set to VALUE&#xA;# Step 5:&#xA;# Skipped&#xA;</system-out>
+    <system-out># Step 1:&#xA;+ exit 0&#xA;# Step 2:&#xA;# Skipped&#xA;# Step 3:&#xA;VAR=VALUE&#xA;# Step 4:&#xA;%s&#xA;Environment variable VAR is set to VALUE&#xA;# Step 5:&#xA;# Skipped&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Sleep" time="ELAPSED">
     <failure>test run timeout exceeded</failure>%s
     <system-out># Step 1:&#xA;+ sleep 600&#xA;# Step 2:&#xA;# Skipped&#xA;</system-out>
   </testcase>
-</testsuite>`, timeoutExitCodeFailure)
+</testsuite>`, xEchoCommandWithQuotes, timeoutExitCodeFailure)
 }
 
 func readJUnitXML(t *testing.T, path string) string {
