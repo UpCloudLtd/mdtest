@@ -6,6 +6,7 @@ import (
 	"os"
 	"slices"
 
+	"github.com/UpCloudLtd/mdtest/testcase"
 	"github.com/UpCloudLtd/mdtest/utils"
 )
 
@@ -43,7 +44,7 @@ func readTestsuite(run RunResult) junitTestsuite {
 
 	var errors, failures int
 	for _, result := range run.TestResults {
-		testcase := junitTestcase{
+		tcase := junitTestcase{
 			Classname: run.Name,
 			Name:      result.Name,
 			Time:      result.Finished.Sub(result.Started).Seconds(),
@@ -51,33 +52,36 @@ func readTestsuite(run RunResult) junitTestsuite {
 
 		if result.Error != nil {
 			if utils.IsCanceled(result.Error) {
-				testcase.Failure = append(testcase.Failure, result.Error.Error())
+				tcase.Failure = append(tcase.Failure, result.Error.Error())
 			} else {
-				testcase.Error = append(testcase.Error, result.Error.Error())
+				tcase.Error = append(tcase.Error, result.Error.Error())
 				errors++
 			}
 		}
 
 		for i, step := range result.Results {
-			if !step.Success && step.Error != nil {
+			if step.Status == testcase.StepStatusFailure && step.Error != nil {
 				msg := step.Error.Error()
-				if !slices.Contains(testcase.Failure, msg) {
-					testcase.Failure = append(testcase.Failure, msg)
+				if !slices.Contains(tcase.Failure, msg) {
+					tcase.Failure = append(tcase.Failure, msg)
 				}
 			}
 
 			output := step.Output
 			if output == "" {
-				output = "# No output"
+				output = "# No output\n"
 			}
-			testcase.SystemOut += fmt.Sprintf("# Step %d:\n%s", i+1, output)
+			if step.Status == testcase.StepStatusSkipped {
+				output = "# Skipped\n"
+			}
+			tcase.SystemOut += fmt.Sprintf("# Step %d:\n%s", i+1, output)
 		}
 
-		if len(testcase.Failure) > 0 {
+		if len(tcase.Failure) > 0 {
 			failures++
 		}
 
-		testsuite.Testcases = append(testsuite.Testcases, testcase)
+		testsuite.Testcases = append(testsuite.Testcases, tcase)
 	}
 
 	testsuite.Errors = errors

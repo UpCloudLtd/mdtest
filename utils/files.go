@@ -10,7 +10,10 @@ import (
 	"github.com/UpCloudLtd/progress/messages"
 )
 
-var quotedValueRegex = regexp.MustCompile(`^["'](.*)["']$`)
+var (
+	optionRegex      = regexp.MustCompile(`([^=\s]+(=(('[^']*')|("[^"]*"))|\S+){0,1})`)
+	quotedValueRegex = regexp.MustCompile(`^["'](.*)["']$`)
+)
 
 type PathWarning struct {
 	path string
@@ -87,11 +90,15 @@ func (o Options) GetBoolean(key string) bool {
 	}
 
 	// Option set with a value, e.g. "cleanup=true"
-	return strings.ToLower(*val) == "true"
+	return strings.EqualFold(*val, "true")
+}
+
+func splitOptions(optionsStr string) []string {
+	return optionRegex.FindAllString(optionsStr, -1)
 }
 
 func ParseOptions(optionsStr string) (string, Options) {
-	optionsList := strings.Split(optionsStr, " ")
+	optionsList := splitOptions(optionsStr)
 	options := make(Options)
 
 	lang := optionsList[0]

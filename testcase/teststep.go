@@ -9,10 +9,18 @@ import (
 	"github.com/UpCloudLtd/mdtest/utils"
 )
 
+type StepStatus string
+
+const (
+	StepStatusSuccess StepStatus = "success"
+	StepStatusFailure StepStatus = "failure"
+	StepStatusSkipped StepStatus = "skipped"
+)
+
 type StepResult struct {
-	Success bool
-	Output  string
-	Error   error
+	Status StepStatus
+	Output string
+	Error  error
 }
 
 type Step interface {
