@@ -152,31 +152,32 @@ func removeTestDir(params TestParameters) error {
 }
 
 func getFailureDetails(test TestResult) string {
-	details := ""
+	var details strings.Builder
 	if test.FailureCount > 0 {
-		details += "Failures:"
+		details.WriteString("Failures:")
 	} else if test.Error != nil {
-		details += "Canceled: " + test.Error.Error()
+		details.WriteString("Canceled: ")
+		details.WriteString(test.Error.Error())
 	}
 	for i, res := range test.Results {
 		if err := res.Error; err != nil {
-			details += fmt.Sprintf("\n\nStep %d: %s", i+1, err.Error())
+			details.WriteString(fmt.Sprintf("\n\nStep %d: %s", i+1, err.Error()))
 
 			if res.Output != "" {
-				details += "\n\nOutput:\n\n"
-				details += res.Output
+				details.WriteString("\n\nOutput:\n\n")
+				details.WriteString(res.Output)
 			}
 		}
 	}
 
-	details += fmt.Sprintf("\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount)
+	details.WriteString(fmt.Sprintf("\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount))
 
 	skippedCount := test.SkippedCount()
 	if skippedCount > 0 {
-		details += fmt.Sprintf(" (%d skipped)", skippedCount)
+		details.WriteString(fmt.Sprintf(" (%d skipped)", skippedCount))
 	}
 
-	return details
+	return details.String()
 }
 
 func stepsProgressMessage(path string, i, total int) messages.Update {
