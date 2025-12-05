@@ -82,18 +82,18 @@ func quoteValue(value, quoteValues string) string {
 }
 
 func transformOptions(options Options, transforms map[string]string, quoteValues string) string {
-	output := ""
+	var output strings.Builder
 	for key, value := range options {
 		if newKey := transforms[key]; newKey != "" {
 			if value != nil {
-				output += fmt.Sprintf(" %s=%s", newKey, quoteValue(*value, quoteValues))
+				output.WriteString(fmt.Sprintf(" %s=%s", newKey, quoteValue(*value, quoteValues)))
 			} else {
-				output += fmt.Sprintf(" %s", newKey)
+				output.WriteString(fmt.Sprintf(" %s", newKey))
 			}
 		}
 	}
 
-	return output
+	return output.String()
 }
 
 func normalize(path, outputDir string, transforms map[string]string, quoteValues string) error {

@@ -190,7 +190,6 @@ exit 0
 `,
 		},
 	} {
-		test := test
 		t.Run(test.testPath, func(t *testing.T) {
 			dir, err := os.MkdirTemp("", "example")
 			if err != nil {

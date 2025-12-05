@@ -2,6 +2,7 @@ package output
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -23,12 +24,12 @@ type SummaryItem struct {
 
 func SummaryTable(data []SummaryItem) string {
 	keyFormat := fmt.Sprintf("%%-%ds", maxKeyLen(data)+1)
-	out := ""
+	var out strings.Builder
 	for _, i := range data {
-		out += fmt.Sprintf("%s %s\n", text.Bold.Sprintf(keyFormat, i.Key+":"), i.Value)
+		out.WriteString(fmt.Sprintf("%s %s\n", text.Bold.Sprintf(keyFormat, i.Key+":"), i.Value))
 	}
 
-	return out
+	return out.String()
 }
 
 func Failed(failureCount int) string {
