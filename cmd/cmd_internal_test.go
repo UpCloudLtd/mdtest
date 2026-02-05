@@ -197,7 +197,7 @@ exit 0
 			}
 			defer os.RemoveAll(dir)
 
-			var args []string
+			args := make([]string, 0, len(test.transformArgs)+4)
 			args = append(args, "normalise", "-o", dir)
 			args = append(args, test.transformArgs...)
 			args = append(args, test.testPath)

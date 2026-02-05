@@ -46,7 +46,7 @@ func ParseFilePaths(rawPaths []string, depth int) ([]string, []PathWarning) {
 				warnings = append(warnings, PathWarning{rawPath, err})
 			}
 
-			dirRawPaths := []string{}
+			dirRawPaths := make([]string, 0, len(files))
 			for _, file := range files {
 				dirRawPaths = append(dirRawPaths, path.Join(rawPath, file.Name()))
 			}
