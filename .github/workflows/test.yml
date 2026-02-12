@@ -6,6 +6,7 @@ on:
       - "main"
   pull_request:
     paths:
+      - "examples/**"
       - "**.go"
       - "go.mod"
       - "go.sum"
