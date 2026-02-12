@@ -21,7 +21,9 @@ func testdataExpectedJUnitXML() string {
 	if runtime.GOOS == "windows" {
 		timeoutExitCodeFailure = "\n    <failure>expected exit code 0, got 3221225786</failure>"
 	}
-	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="9" failures="5" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
+
+	// The warn_* tests fail because --jobs is set to 1 and they are executed after the timeout test file.
+	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="11" failures="7" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
   <testcase classname="Test JUnit XML output" name="Fail: expected 0, got 3" time="ELAPSED">
     <failure>expected exit code 0, got 3</failure>
     <system-out># Step 1:&#xA;+ exit 3&#xA;</system-out>
@@ -35,7 +37,7 @@ func testdataExpectedJUnitXML() string {
   </testcase>
   <testcase classname="Test JUnit XML output" name="Fail: test environment variable values" time="ELAPSED">
     <failure>expected exit code 0, got 1</failure>
-    <system-out># Step 1:&#xA;berry=banana&#xA;fruit=apple&#xA;# Step 2:&#xA;+ test banana = strawberry&#xA;</system-out>
+    <system-out># Step 1:&#xA;+ berry=banana&#xA;berry=banana&#xA;+ fruit=apple&#xA;fruit=apple&#xA;+ berry_fruit=&#34;${berry}-${fruit}&#34;&#xA;berry_fruit=banana-apple&#xA;# Step 2:&#xA;+ test banana = strawberry&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Fail: failing step, skipped step, and (failing) cleanup step" time="ELAPSED">
     <failure>expected exit code 0, got 4</failure>
@@ -50,11 +52,19 @@ func testdataExpectedJUnitXML() string {
     <system-out># Step 1:&#xA;# No output&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Success: skip sh step with when expression" time="ELAPSED">
-    <system-out># Step 1:&#xA;+ exit 0&#xA;# Step 2:&#xA;# Skipped&#xA;# Step 3:&#xA;VAR=VALUE&#xA;# Step 4:&#xA;%s&#xA;Environment variable VAR is set to VALUE&#xA;# Step 5:&#xA;# Skipped&#xA;</system-out>
+    <system-out># Step 1:&#xA;+ exit 0&#xA;# Step 2:&#xA;# Skipped&#xA;# Step 3:&#xA;+ VAR=VALUE&#xA;VAR=VALUE&#xA;# Step 4:&#xA;%s&#xA;Environment variable VAR is set to VALUE&#xA;# Step 5:&#xA;# Skipped&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Sleep" time="ELAPSED">
     <failure>test run timeout exceeded</failure>%s
     <system-out># Step 1:&#xA;+ sleep 600&#xA;# Step 2:&#xA;# Skipped&#xA;</system-out>
+  </testcase>
+  <testcase classname="Test JUnit XML output" name="Warn: variable key should not contain whitespace" time="ELAPSED">
+    <failure>test run timeout exceeded</failure>
+    <system-out># Step 1:&#xA;+ VAR with whitespace=value&#xA;VAR with whitespace=value&#xA;# Warning: variable key should not contain whitespace: VAR with whitespace=value&#xA;</system-out>
+  </testcase>
+  <testcase classname="Test JUnit XML output" name="Warn: variable values that contain whitespace should be quoted" time="ELAPSED">
+    <failure>test run timeout exceeded</failure>
+    <system-out># Step 1:&#xA;+ VAR=Value with whitespace&#xA;VAR=Value with whitespace&#xA;# Warning: variable values that contain whitespace should be quoted: VAR=Value with whitespace&#xA;</system-out>
   </testcase>
 </testsuite>`, xEchoCommandWithQuotes, timeoutExitCodeFailure)
 }
@@ -106,7 +116,7 @@ func TestRoot_testdata(t *testing.T) {
 		},
 		{
 			testPath:  "../testdata",
-			exitCode:  6,
+			exitCode:  8,
 			extraArgs: []string{"--name", "Test JUnit XML output"},
 			junitXML:  testdataExpectedJUnitXML(),
 		},
@@ -123,6 +133,30 @@ func TestRoot_testdata(t *testing.T) {
 			testPath:  "../testdata/fail_test_environment_variable_values.md",
 			extraArgs: []string{"-e", "berry=strawberry", "--env", "fruit=orange"},
 			exitCode:  0,
+		},
+		{
+			testPath: "../testdata/warn_variable_key_whitespace.md",
+			exitCode: 0,
+		},
+		{
+			testPath: "../testdata/warn_variable_value_whitespace.md",
+			exitCode: 0,
+		},
+		{
+			testPath:  "../testdata/warn_variable_key_whitespace.md",
+			extraArgs: []string{"--warnings-as-errors"},
+			exitCode:  1,
+			junitXML: `<testsuite name="Test JUnit XML output" tests="1" failures="1" errors="0" skipped="0" time="ELAPSED" timestamp="STARTED">
+  <testcase classname="Test JUnit XML output" name="Warn: variable key should not contain whitespace" time="ELAPSED">
+    <failure>variable key should not contain whitespace: VAR with whitespace=value</failure>
+    <system-out># Step 1:&#xA;+ VAR with whitespace=value&#xA;VAR with whitespace=value&#xA;</system-out>
+  </testcase>
+</testsuite>`,
+		},
+		{
+			testPath:  "../testdata/warn_variable_value_whitespace.md",
+			extraArgs: []string{"--warnings-as-errors"},
+			exitCode:  1,
 		},
 	} {
 		t.Run(test.testPath, func(t *testing.T) {

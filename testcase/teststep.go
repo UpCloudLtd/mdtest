@@ -18,9 +18,10 @@ const (
 )
 
 type StepResult struct {
-	Status StepStatus
-	Output string
-	Error  error
+	Status   StepStatus
+	Output   string
+	Error    error
+	Warnings []string
 }
 
 type Step interface {
