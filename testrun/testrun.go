@@ -24,6 +24,7 @@ type RunParameters struct {
 	OutputTarget     io.Writer
 	Timeout          time.Duration
 	OutputToTerminal bool
+	WarningsAsErrors bool
 }
 
 type RunResult struct {
@@ -126,7 +127,7 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 				Status:  messages.MessageStatusWarning,
 			}
 		}
-		err := junitReport(run, params.JUnitXML)
+		err := junitReport(run, params)
 		if err != nil {
 			_ = testLog.Push(warning(err))
 		}

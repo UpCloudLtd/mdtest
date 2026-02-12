@@ -41,6 +41,7 @@ func executeTests(ctx context.Context, paths []string, params RunParameters, tes
 					TestID:           id.NewTestID(),
 					TestLog:          testLog,
 					OutputToTerminal: params.OutputToTerminal,
+					WarningsAsErrors: params.WarningsAsErrors,
 				})
 			}(curJobID, curTest)
 		case res := <-returnChan:

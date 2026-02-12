@@ -16,8 +16,9 @@ var (
 	name             string
 	numberOfJobs     int
 	timeout          time.Duration
-	junitXML         string
 	outputToTerminal bool
+	warningsAsErrors bool
+	junitXML         string
 
 	rootCmd = &cobra.Command{
 		Use:   "mdtest [flags] path ...",
@@ -34,6 +35,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&junitXML, "junit-xml", "x", "", "generate JUnit XML report to the specified `path`")
 	rootCmd.Flags().DurationVar(&timeout, "timeout", 0, "timeout for the test run as a `duration` string, e.g., 1s, 1m, 1h")
 	rootCmd.Flags().BoolVar(&outputToTerminal, "output-to-terminal", false, "print output from `sh` blocks to the terminal in real-time. Only available when running tests non-concurrently: use either `--jobs=1` or target a single test file when using this flag.")
+	rootCmd.Flags().BoolVar(&warningsAsErrors, "warnings-as-errors", false, "treat warnings as errors, i.e., fail the test run if any warnings are encountered")
 
 	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if outputToTerminal && numberOfJobs > 1 {
@@ -59,6 +61,7 @@ func init() {
 			Timeout:          timeout,
 			JUnitXML:         junitXML,
 			OutputToTerminal: outputToTerminal,
+			WarningsAsErrors: warningsAsErrors,
 		}
 
 		res := testrun.Execute(args, params)
