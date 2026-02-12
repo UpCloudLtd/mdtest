@@ -26,17 +26,23 @@ const (
 	EnvSourceTestcase EnvSource = "testcase"
 )
 
+type EnvBySource map[EnvSource][]string
+
+func (e EnvBySource) Merge() []string {
+	merged := e[EnvSourceEnviron]
+	merged = append(merged, e[EnvSourceTestcase]...)
+	merged = append(merged, e[EnvSourceCommand]...)
+	merged = append(merged, e[EnvSourceBuiltIn]...)
+	return merged
+}
+
 type testStatus struct {
 	Params TestParameters
-	Env    map[EnvSource][]string
+	Env    EnvBySource
 }
 
 func (t *testStatus) GetEnv() []string {
-	env := t.Env[EnvSourceEnviron]
-	env = append(env, t.Env[EnvSourceTestcase]...)
-	env = append(env, t.Env[EnvSourceCommand]...)
-	env = append(env, t.Env[EnvSourceBuiltIn]...)
-	return env
+	return t.Env.Merge()
 }
 
 func (t *testStatus) GetCelEnv() (*cel.Env, error) {
@@ -73,11 +79,12 @@ func NewTestStatus(params TestParameters) testStatus {
 }
 
 type TestParameters struct {
-	EnvOverride []string
-	JobID       int
-	RunID       string
-	TestID      string
-	TestLog     *progress.Progress
+	EnvOverride      []string
+	JobID            int
+	RunID            string
+	TestID           string
+	TestLog          *progress.Progress
+	WarningsAsErrors bool
 }
 
 type TestResult struct {
@@ -90,6 +97,15 @@ type TestResult struct {
 	StepsCount   int
 	Results      []StepResult
 	Error        error
+}
+
+func (t TestResult) HasWarnings() bool {
+	for _, res := range t.Results {
+		if len(res.Warnings) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (t TestResult) SkippedCount() int {
@@ -153,6 +169,14 @@ func removeTestDir(params TestParameters) error {
 
 func getFailureDetails(test TestResult) string {
 	var details strings.Builder
+	if test.HasWarnings() {
+		details.WriteString(getWarningDetails(test))
+
+		if test.FailureCount > 0 {
+			details.WriteString("\n\n")
+		}
+	}
+
 	if test.FailureCount > 0 {
 		details.WriteString("Failures:")
 	} else if test.Error != nil {
@@ -177,6 +201,32 @@ func getFailureDetails(test TestResult) string {
 		details.WriteString(fmt.Sprintf(" (%d skipped)", skippedCount))
 	}
 
+	return details.String()
+}
+
+func getSuccessUpdate(path string, test TestResult) messages.Update {
+	status := messages.MessageStatusSuccess
+	details := ""
+	if test.HasWarnings() {
+		status = messages.MessageStatusWarning
+		details = getWarningDetails(test)
+	}
+
+	return messages.Update{Key: path, Status: status, Details: details}
+}
+
+func getWarningDetails(test TestResult) string {
+	if !test.HasWarnings() {
+		return ""
+	}
+
+	var details strings.Builder
+	details.WriteString("Warnings:\n")
+	for i, res := range test.Results {
+		for _, warn := range res.Warnings {
+			details.WriteString(fmt.Sprintf("\nStep %d: %s", i+1, warn))
+		}
+	}
 	return details.String()
 }
 
@@ -248,9 +298,9 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 	}
 
 	test.Finished = time.Now()
-	test.Success = test.FailureCount == 0 && test.Error == nil
+	test.Success = test.FailureCount == 0 && test.Error == nil && (!params.WarningsAsErrors || !test.HasWarnings())
 	if test.Success {
-		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusSuccess})
+		_ = testLog.Push(getSuccessUpdate(path, test))
 		_ = removeTestDir(params)
 	} else {
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusError, Details: getFailureDetails(test)})

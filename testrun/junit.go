@@ -34,7 +34,36 @@ type junitTestsuite struct {
 	Testcases []junitTestcase `xml:"testcase"`
 }
 
-func readTestsuite(run RunResult) junitTestsuite {
+func handleTestStep(i int, step testcase.StepResult, params RunParameters, tcase *junitTestcase) {
+	if step.Status == testcase.StepStatusFailure && step.Error != nil {
+		msg := step.Error.Error()
+		if !slices.Contains(tcase.Failure, msg) {
+			tcase.Failure = append(tcase.Failure, msg)
+		}
+	}
+
+	output := step.Output
+	if output == "" {
+		output = "# No output\n"
+	}
+	if step.Status == testcase.StepStatusSkipped {
+		output = "# Skipped\n"
+	}
+
+	for _, msg := range step.Warnings {
+		if params.WarningsAsErrors {
+			if !slices.Contains(tcase.Failure, msg) {
+				tcase.Failure = append(tcase.Failure, msg)
+			}
+		} else {
+			output += fmt.Sprintf("# Warning: %s\n", msg)
+		}
+	}
+
+	tcase.SystemOut += fmt.Sprintf("# Step %d:\n%s", i+1, output)
+}
+
+func readTestsuite(run RunResult, params RunParameters) junitTestsuite {
 	testsuite := junitTestsuite{
 		Name:      run.Name,
 		Tests:     len(run.TestResults),
@@ -60,24 +89,10 @@ func readTestsuite(run RunResult) junitTestsuite {
 		}
 
 		for i, step := range result.Results {
-			if step.Status == testcase.StepStatusFailure && step.Error != nil {
-				msg := step.Error.Error()
-				if !slices.Contains(tcase.Failure, msg) {
-					tcase.Failure = append(tcase.Failure, msg)
-				}
-			}
-
-			output := step.Output
-			if output == "" {
-				output = "# No output\n"
-			}
-			if step.Status == testcase.StepStatusSkipped {
-				output = "# Skipped\n"
-			}
-			tcase.SystemOut += fmt.Sprintf("# Step %d:\n%s", i+1, output)
+			handleTestStep(i, step, params, &tcase)
 		}
 
-		if len(tcase.Failure) > 0 {
+		if len(tcase.Failure) > 0 || params.WarningsAsErrors && result.HasWarnings() {
 			failures++
 		}
 
@@ -90,8 +105,9 @@ func readTestsuite(run RunResult) junitTestsuite {
 	return testsuite
 }
 
-func junitReport(run RunResult, path string) error {
-	testsuite := readTestsuite(run)
+func junitReport(run RunResult, params RunParameters) error {
+	path := params.JUnitXML
+	testsuite := readTestsuite(run, params)
 
 	data, err := xml.MarshalIndent(testsuite, "", "  ")
 	if err != nil {
