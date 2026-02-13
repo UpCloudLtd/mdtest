@@ -17,12 +17,13 @@ import (
 )
 
 type RunParameters struct {
-	Env          []string
-	JUnitXML     string
-	Name         string
-	NumberOfJobs int
-	OutputTarget io.Writer
-	Timeout      time.Duration
+	Env              []string
+	JUnitXML         string
+	Name             string
+	NumberOfJobs     int
+	OutputTarget     io.Writer
+	Timeout          time.Duration
+	WarningsAsErrors bool
 }
 
 type RunResult struct {
@@ -122,7 +123,7 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 				Status:  messages.MessageStatusWarning,
 			}
 		}
-		err := junitReport(run, params.JUnitXML)
+		err := junitReport(run, params)
 		if err != nil {
 			_ = testLog.Push(warning(err))
 		}
