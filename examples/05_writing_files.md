@@ -1,6 +1,6 @@
 # Writing files
 
-When a code-block contains a `filename` option, the content of the code block is written to the file specified as a parameter for the option. For example, `` ```python filename=uuid4.py ``.
+When a code-block contains a `filename` option, the content of the code block is written to the file specified as a parameter for the option. For example, `` ```python filename=js_sum.py ``.
 
 ```py filename=js_sum.py
 def number_or_string(value):
