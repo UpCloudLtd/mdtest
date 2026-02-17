@@ -16,11 +16,6 @@ inputs:
     required: false
     default: "1.24.x"
 
-outputs:
-  gobin:
-    description: "Directory where mdtest was installed."
-    value: ${{ steps.install.outputs.gobin }}
-
 runs:
   using: "composite"
   steps:
@@ -32,7 +27,6 @@ runs:
         check-latest: true
 
     - name: Install mdtest
-      id: install
       shell: bash
       run: |
         set -euo pipefail
@@ -41,11 +35,14 @@ runs:
         GOBIN="${GITHUB_WORKSPACE}/.tools/bin"
         mkdir -p "${GOBIN}"
 
-        echo "gobin=${GOBIN}" >> "$GITHUB_OUTPUT"
         echo "${GOBIN}" >> "${GITHUB_PATH}"
 
         echo "Installing mdtest@${{ inputs.version }}"
         GOBIN="${GOBIN}" go install github.com/UpCloudLtd/mdtest@${{ inputs.version }}
 
-        command -v mdtest >/dev/null 2>&1
-        echo "mdtest installed at: $(command -v mdtest)"
+        # Verify installation (GITHUB_PATH changes only affect subsequent steps)
+        if [[ ! -x "${GOBIN}/mdtest" ]]; then
+          echo "::error::mdtest binary not found at ${GOBIN}/mdtest"
+          exit 1
+        fi
+        echo "mdtest installed at: ${GOBIN}/mdtest"
