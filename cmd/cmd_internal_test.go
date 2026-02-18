@@ -62,7 +62,7 @@ func testdataExpectedJUnitXML() string {
 func readJUnitXML(t *testing.T, path string) string {
 	t.Helper()
 
-	reportBytes, err := os.ReadFile(path)
+	reportBytes, err := os.ReadFile(path) //nolint:gosec // This is a test helper function, so reading files is expected and not a security risk
 	if err != nil {
 		t.Fatalf("Failed to read JUnit XML file: %v", err)
 	}
