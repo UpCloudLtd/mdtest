@@ -1,0 +1,48 @@
+name: "Setup mdtest"
+description: "Install the mdtest CLI and add it to PATH."
+author: "UpCloudLtd"
+
+inputs:
+  version:
+    description: "Version of mdtest to install (e.g. v0.3.1). Avoid 'latest' for reproducible builds."
+    required: false
+    default: "latest"
+  install-go:
+    description: "Whether to install Go toolchain (true/false)."
+    required: false
+    default: "false"
+  go-version:
+    description: "Go version to install if install-go=true (e.g. '1.24.x')."
+    required: false
+    default: "1.24.x"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Go
+      if: ${{ inputs.install-go == 'true' }}
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+        check-latest: true
+
+    - name: Install mdtest
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # Deterministic install location inside workspace
+        GOBIN="${GITHUB_WORKSPACE}/.tools/bin"
+        mkdir -p "${GOBIN}"
+
+        echo "${GOBIN}" >> "${GITHUB_PATH}"
+
+        echo "Installing mdtest@${{ inputs.version }}"
+        GOBIN="${GOBIN}" go install github.com/UpCloudLtd/mdtest@${{ inputs.version }}
+
+        # Verify installation (GITHUB_PATH changes only affect subsequent steps)
+        if [[ ! -x "${GOBIN}/mdtest" ]]; then
+          echo "::error::mdtest binary not found at ${GOBIN}/mdtest"
+          exit 1
+        fi
+        echo "mdtest installed at: ${GOBIN}/mdtest"
