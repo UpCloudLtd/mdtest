@@ -24,4 +24,4 @@ jobs:
           version: latest
 
       - name: Verify mdtest is available
-        run: mdtest --version
+        run: mdtest version
