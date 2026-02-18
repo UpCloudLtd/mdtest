@@ -1,0 +1,25 @@
+name: Test setup-mdtest action
+
+on:
+  pull_request:
+    paths:
+      - '.github/actions/setup-mdtest/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/actions/setup-mdtest/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test action with install-go
+        uses: ./.github/actions/setup-mdtest
+        with:
+          install-go: true
+          version: latest
+
+      - name: Verify mdtest is available
+        run: mdtest --version
