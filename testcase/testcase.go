@@ -73,11 +73,12 @@ func NewTestStatus(params TestParameters) testStatus {
 }
 
 type TestParameters struct {
-	EnvOverride []string
-	JobID       int
-	RunID       string
-	TestID      string
-	TestLog     *progress.Progress
+	EnvOverride      []string
+	JobID            int
+	RunID            string
+	TestID           string
+	TestLog          *progress.Progress
+	OutputToTerminal bool
 }
 
 type TestResult struct {
@@ -187,6 +188,35 @@ func stepsProgressMessage(path string, i, total int) messages.Update {
 	}
 }
 
+func stepsSummaryMessage(path, output string, status StepStatus, i, total int) messages.Update {
+	var message string
+	var msgStatus messages.MessageStatus
+
+	switch status {
+	case StepStatusSkipped:
+		message = fmt.Sprintf("%s (Step %d of %d): [Skipped]", path, i+1, total)
+		msgStatus = messages.MessageStatusSkipped
+	case StepStatusFailure:
+		message = fmt.Sprintf("%s (Step %d of %d): %s", path, i+1, total, output)
+		msgStatus = messages.MessageStatusError
+	case StepStatusSuccess:
+		var out string
+		if output != "" {
+			out = output
+		} else {
+			out = "[Empty]"
+		}
+		message = fmt.Sprintf("%s (Step %d of %d): %s", path, i+1, total, out)
+		msgStatus = messages.MessageStatusSuccess
+	}
+
+	return messages.Update{
+		Key:     fmt.Sprintf("%s%d", path, i),
+		Message: message,
+		Status:  msgStatus,
+	}
+}
+
 func errorMessage(key string, err error) messages.Update {
 	return messages.Update{
 		Key:     key,
@@ -237,6 +267,11 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 		res := step.Execute(ctx, &status)
 		test.Results = append(test.Results, res)
+
+		if params.OutputToTerminal {
+			_ = testLog.Push(stepsSummaryMessage(path, res.Output, res.Status, i, len(steps)))
+		}
+
 		switch res.Status {
 		case StepStatusSuccess:
 			test.SuccessCount++
