@@ -106,7 +106,7 @@ type PrefixWriter struct {
 	prefix string
 	buf    []byte
 
-	handleLine func(prefix string, line string)
+	handleLine func(prefix, line string)
 }
 
 func (w *PrefixWriter) Write(p []byte) (n int, err error) {
@@ -127,13 +127,13 @@ func (w *PrefixWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-var nextId atomic.Int64
-var handleLine = func(key string, progress *progress.Progress) func(prefix, line string) {
+func handleLine(key string, progress *progress.Progress) func(prefix, line string) {
+	var nextID atomic.Int64
 	return func(prefix, line string) {
-		i := nextId.Add(1)
+		i := nextID.Add(1)
 		idKey := fmt.Sprintf("%s%d", key, i)
 
-		progress.Push(messages.Update{
+		_ = progress.Push(messages.Update{
 			Key:     idKey,
 			Message: fmt.Sprintf("%s [%s]: %s", prefix, key, line),
 			Status:  messages.MessageStatusSuccess,
@@ -262,22 +262,8 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
-	// collector := &OutputCollector{
-	// 	progress: params.TestLog,
-	// 	key:      path,
-	// }
-	stdoutWriter := &PrefixWriter{
-		prefix:     "out",
-		handleLine: handleLine(path, params.TestLog),
-	}
-	stderrWriter := &PrefixWriter{
-		prefix:     "err",
-		handleLine: handleLine(path, params.TestLog),
-	}
-
 	if params.OutputToTerminal {
-		params.StdoutWriter = stdoutWriter
-		params.StderrWriter = stderrWriter
+		setParamWriters(&params, path)
 	}
 
 	test := TestResult{
@@ -301,14 +287,7 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 		res := step.Execute(ctx, &status)
 		test.Results = append(test.Results, res)
 
-		switch res.Status {
-		case StepStatusSuccess:
-			test.SuccessCount++
-		case StepStatusFailure:
-			test.FailureCount++
-		case StepStatusSkipped:
-			// No action
-		}
+		updateTestStatusCounters(&test, res)
 	}
 
 	test.Finished = time.Now()
@@ -320,4 +299,26 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusError, Details: getFailureDetails(test)})
 	}
 	return test
+}
+
+func setParamWriters(params *TestParameters, key string) {
+	params.StdoutWriter = &PrefixWriter{
+		prefix:     "out",
+		handleLine: handleLine(key, params.TestLog),
+	}
+	params.StderrWriter = &PrefixWriter{
+		prefix:     "err",
+		handleLine: handleLine(key, params.TestLog),
+	}
+}
+
+func updateTestStatusCounters(test *TestResult, stepRes StepResult) {
+	switch stepRes.Status {
+	case StepStatusSuccess:
+		test.SuccessCount++
+	case StepStatusFailure:
+		test.FailureCount++
+	case StepStatusSkipped:
+		// No action
+	}
 }

@@ -84,8 +84,11 @@ func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
 	cmd.Env = t.GetEnv()
 	utils.UseProcessGroup(cmd)
 
-	var output bytes.Buffer
+	return RunAndHandleStepOutput(ctx, cmd, t, s.exitCode)
+}
 
+func RunAndHandleStepOutput(ctx context.Context, cmd *exec.Cmd, t *testStatus, exitCode int) StepResult {
+	var output bytes.Buffer
 	cmd.Stdout = io.MultiWriter(&output, safeWriter(t.Params.StdoutWriter))
 	cmd.Stderr = io.MultiWriter(&output, safeWriter(t.Params.StderrWriter))
 
@@ -115,17 +118,17 @@ func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
 				Output: output.String(),
 			}
 		}
-		if got != s.exitCode {
+		if got != exitCode {
 			return StepResult{
 				Status: StepStatusFailure,
-				Error:  unexpectedExitCode(s.exitCode, got),
+				Error:  unexpectedExitCode(exitCode, got),
 				Output: output.String(),
 			}
 		}
-	} else if s.exitCode != 0 {
+	} else if exitCode != 0 {
 		return StepResult{
 			Status: StepStatusFailure,
-			Error:  unexpectedExitCode(s.exitCode, 0),
+			Error:  unexpectedExitCode(exitCode, 0),
 			Output: output.String(),
 		}
 	}
