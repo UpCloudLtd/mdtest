@@ -2,11 +2,14 @@ package testcase
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/UpCloudLtd/mdtest/globals"
@@ -79,6 +82,8 @@ type TestParameters struct {
 	TestID           string
 	TestLog          *progress.Progress
 	OutputToTerminal bool
+	StdoutWriter     io.Writer
+	StderrWriter     io.Writer
 }
 
 type TestResult struct {
@@ -95,6 +100,45 @@ type TestResult struct {
 
 func (t TestResult) SkippedCount() int {
 	return t.StepsCount - t.SuccessCount - t.FailureCount
+}
+
+type PrefixWriter struct {
+	prefix string
+	buf    []byte
+
+	handleLine func(prefix string, line string)
+}
+
+func (w *PrefixWriter) Write(p []byte) (n int, err error) {
+	w.buf = append(w.buf, p...)
+
+	for {
+		i := bytes.IndexByte(w.buf, '\n')
+		if i == -1 {
+			break
+		}
+
+		line := w.buf[:i+1]
+		w.buf = w.buf[i+1:]
+
+		w.handleLine(w.prefix, string(line))
+	}
+
+	return len(p), nil
+}
+
+var nextId atomic.Int64
+var handleLine = func(key string, progress *progress.Progress) func(prefix, line string) {
+	return func(prefix, line string) {
+		i := nextId.Add(1)
+		idKey := fmt.Sprintf("%s%d", key, i)
+
+		progress.Push(messages.Update{
+			Key:     idKey,
+			Message: fmt.Sprintf("%s [%s]: %s", prefix, key, line),
+			Status:  messages.MessageStatusSuccess,
+		})
+	}
 }
 
 func parse(path string) (string, []Step, error) {
@@ -188,35 +232,6 @@ func stepsProgressMessage(path string, i, total int) messages.Update {
 	}
 }
 
-func stepsSummaryMessage(path, output string, status StepStatus, i, total int) messages.Update {
-	var message string
-	var msgStatus messages.MessageStatus
-
-	switch status {
-	case StepStatusSkipped:
-		message = fmt.Sprintf("%s (Step %d of %d): [Skipped]", path, i+1, total)
-		msgStatus = messages.MessageStatusSkipped
-	case StepStatusFailure:
-		message = fmt.Sprintf("%s (Step %d of %d): %s", path, i+1, total, output)
-		msgStatus = messages.MessageStatusError
-	case StepStatusSuccess:
-		var out string
-		if output != "" {
-			out = output
-		} else {
-			out = "[Empty]"
-		}
-		message = fmt.Sprintf("%s (Step %d of %d): %s", path, i+1, total, out)
-		msgStatus = messages.MessageStatusSuccess
-	}
-
-	return messages.Update{
-		Key:     fmt.Sprintf("%s%d", path, i),
-		Message: message,
-		Status:  msgStatus,
-	}
-}
-
 func errorMessage(key string, err error) messages.Update {
 	return messages.Update{
 		Key:     key,
@@ -247,6 +262,24 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
+	// collector := &OutputCollector{
+	// 	progress: params.TestLog,
+	// 	key:      path,
+	// }
+	stdoutWriter := &PrefixWriter{
+		prefix:     "out",
+		handleLine: handleLine(path, params.TestLog),
+	}
+	stderrWriter := &PrefixWriter{
+		prefix:     "err",
+		handleLine: handleLine(path, params.TestLog),
+	}
+
+	if params.OutputToTerminal {
+		params.StdoutWriter = stdoutWriter
+		params.StderrWriter = stderrWriter
+	}
+
 	test := TestResult{
 		Name:       name,
 		Started:    started,
@@ -267,10 +300,6 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 		res := step.Execute(ctx, &status)
 		test.Results = append(test.Results, res)
-
-		if params.OutputToTerminal {
-			_ = testLog.Push(stepsSummaryMessage(path, res.Output, res.Status, i, len(steps)))
-		}
 
 		switch res.Status {
 		case StepStatusSuccess:

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/UpCloudLtd/mdtest/testrun"
+	"github.com/UpCloudLtd/mdtest/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +37,10 @@ func init() {
 
 	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if outputToTerminal && numberOfJobs > 1 {
-			return fmt.Errorf("--output-to-terminal cannot be used when running tests in parallel. Please set --jobs to 1 when using --output-to-terminal. Currently set --jobs to %d", numberOfJobs)
+			files, _ := utils.ParseFilePaths(args, 1)
+			if len(files) > 1 {
+				return fmt.Errorf("--output-to-terminal cannot be used when running tests in parallel on multiple test files. Please set --jobs=1 when using --output-to-terminal, or run tests with --output-to-terminal on a single file. Currently set --jobs to %d, files to be run: %d", numberOfJobs, len(files))
+			}
 		}
 
 		return nil
