@@ -2,11 +2,14 @@ package testcase
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/UpCloudLtd/mdtest/globals"
@@ -73,11 +76,14 @@ func NewTestStatus(params TestParameters) testStatus {
 }
 
 type TestParameters struct {
-	EnvOverride []string
-	JobID       int
-	RunID       string
-	TestID      string
-	TestLog     *progress.Progress
+	EnvOverride      []string
+	JobID            int
+	RunID            string
+	TestID           string
+	TestLog          *progress.Progress
+	OutputToTerminal bool
+	StdoutWriter     io.Writer
+	StderrWriter     io.Writer
 }
 
 type TestResult struct {
@@ -94,6 +100,45 @@ type TestResult struct {
 
 func (t TestResult) SkippedCount() int {
 	return t.StepsCount - t.SuccessCount - t.FailureCount
+}
+
+type PrefixWriter struct {
+	prefix string
+	buf    []byte
+
+	handleLine func(prefix, line string)
+}
+
+func (w *PrefixWriter) Write(p []byte) (n int, err error) {
+	w.buf = append(w.buf, p...)
+
+	for {
+		i := bytes.IndexByte(w.buf, '\n')
+		if i == -1 {
+			break
+		}
+
+		line := w.buf[:i+1]
+		w.buf = w.buf[i+1:]
+
+		w.handleLine(w.prefix, string(line))
+	}
+
+	return len(p), nil
+}
+
+func handleLine(key string, progress *progress.Progress) func(prefix, line string) {
+	var nextID atomic.Int64
+	return func(prefix, line string) {
+		i := nextID.Add(1)
+		idKey := fmt.Sprintf("%s%d", key, i)
+
+		_ = progress.Push(messages.Update{
+			Key:     idKey,
+			Message: fmt.Sprintf("%s [%s]: %s", prefix, key, line),
+			Status:  messages.MessageStatusSuccess,
+		})
+	}
 }
 
 func parse(path string) (string, []Step, error) {
@@ -217,6 +262,10 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
+	if params.OutputToTerminal {
+		setParamWriters(&params, path)
+	}
+
 	test := TestResult{
 		Name:       name,
 		Started:    started,
@@ -237,14 +286,8 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 		res := step.Execute(ctx, &status)
 		test.Results = append(test.Results, res)
-		switch res.Status {
-		case StepStatusSuccess:
-			test.SuccessCount++
-		case StepStatusFailure:
-			test.FailureCount++
-		case StepStatusSkipped:
-			// No action
-		}
+
+		updateTestStatusCounters(&test, res)
 	}
 
 	test.Finished = time.Now()
@@ -256,4 +299,26 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusError, Details: getFailureDetails(test)})
 	}
 	return test
+}
+
+func setParamWriters(params *TestParameters, key string) {
+	params.StdoutWriter = &PrefixWriter{
+		prefix:     "out",
+		handleLine: handleLine(key, params.TestLog),
+	}
+	params.StderrWriter = &PrefixWriter{
+		prefix:     "err",
+		handleLine: handleLine(key, params.TestLog),
+	}
+}
+
+func updateTestStatusCounters(test *TestResult, stepRes StepResult) {
+	switch stepRes.Status {
+	case StepStatusSuccess:
+		test.SuccessCount++
+	case StepStatusFailure:
+		test.FailureCount++
+	case StepStatusSkipped:
+		// No action
+	}
 }
