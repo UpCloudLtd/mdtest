@@ -2,19 +2,22 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"time"
 
 	"github.com/UpCloudLtd/mdtest/testrun"
+	"github.com/UpCloudLtd/mdtest/utils"
 	"github.com/spf13/cobra"
 )
 
 var (
-	env          []string
-	name         string
-	numberOfJobs int
-	timeout      time.Duration
-	junitXML     string
+	env              []string
+	name             string
+	numberOfJobs     int
+	timeout          time.Duration
+	junitXML         string
+	outputToTerminal bool
 
 	rootCmd = &cobra.Command{
 		Use:   "mdtest [flags] path ...",
@@ -30,17 +33,31 @@ func init() {
 	rootCmd.Flags().StringVar(&name, "name", "", "name for the testsuite to be printed into the console and to be used as the testsuite name in JUnit XML report")
 	rootCmd.Flags().StringVarP(&junitXML, "junit-xml", "x", "", "generate JUnit XML report to the specified `path`")
 	rootCmd.Flags().DurationVar(&timeout, "timeout", 0, "timeout for the test run as a `duration` string, e.g., 1s, 1m, 1h")
+	rootCmd.Flags().BoolVar(&outputToTerminal, "output-to-terminal", false, "print output from test steps directly to the terminal. Must be used with --jobs=1 to avoid collision of outputs from parallel tests")
+
+	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		if outputToTerminal && numberOfJobs > 1 {
+			files, _ := utils.ParseFilePaths(args, 1)
+			if len(files) > 1 {
+				return fmt.Errorf("--output-to-terminal cannot be used when running tests in parallel on multiple test files. Please set --jobs=1 when using --output-to-terminal, or run tests with --output-to-terminal on a single file. Currently set --jobs to %d, files to be run: %d", numberOfJobs, len(files))
+			}
+		}
+
+		return nil
+	}
+
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
 
 		params := testrun.RunParameters{
-			Env:          env,
-			Name:         name,
-			NumberOfJobs: numberOfJobs,
-			OutputTarget: rootCmd.OutOrStdout(),
-			Timeout:      timeout,
-			JUnitXML:     junitXML,
+			Env:              env,
+			Name:             name,
+			NumberOfJobs:     numberOfJobs,
+			OutputTarget:     rootCmd.OutOrStdout(),
+			Timeout:          timeout,
+			JUnitXML:         junitXML,
+			OutputToTerminal: outputToTerminal,
 		}
 
 		res := testrun.Execute(args, params)

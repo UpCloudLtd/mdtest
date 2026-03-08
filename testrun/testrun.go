@@ -17,12 +17,13 @@ import (
 )
 
 type RunParameters struct {
-	Env          []string
-	JUnitXML     string
-	Name         string
-	NumberOfJobs int
-	OutputTarget io.Writer
-	Timeout      time.Duration
+	Env              []string
+	JUnitXML         string
+	Name             string
+	NumberOfJobs     int
+	OutputTarget     io.Writer
+	Timeout          time.Duration
+	OutputToTerminal bool
 }
 
 type RunResult struct {
