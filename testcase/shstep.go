@@ -84,29 +84,35 @@ func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
 	cmd.Env = t.GetEnv()
 	utils.UseProcessGroup(cmd)
 
-	return RunAndHandleStepOutput(ctx, cmd, t, s.exitCode)
+	if t.Params.OutputToTerminal {
+		var output bytes.Buffer
+		cmd.Stdout = io.MultiWriter(&output, safeWriter(t.Params.StdoutWriter))
+		cmd.Stderr = io.MultiWriter(&output, safeWriter(t.Params.StderrWriter))
+
+		if err := cmd.Start(); err != nil {
+			return StepResult{
+				Status: StepStatusFailure,
+				Error:  fmt.Errorf("failed to start command: %w", err),
+			}
+		}
+
+		err = cmd.Wait()
+		return HandleStepOutput(ctx, cmd, t, s.exitCode, err, output.String())
+	} else {
+		output, err := cmd.CombinedOutput()
+		return HandleStepOutput(ctx, cmd, t, s.exitCode, err, string(output))
+	}
 }
 
-func RunAndHandleStepOutput(ctx context.Context, cmd *exec.Cmd, t *testStatus, exitCode int) StepResult {
-	var output bytes.Buffer
-	cmd.Stdout = io.MultiWriter(&output, safeWriter(t.Params.StdoutWriter))
-	cmd.Stderr = io.MultiWriter(&output, safeWriter(t.Params.StderrWriter))
-
-	if err := cmd.Start(); err != nil {
-		return StepResult{
-			Status: StepStatusFailure,
-			Error:  fmt.Errorf("failed to start command: %w", err),
-		}
-	}
-
-	if err := cmd.Wait(); err != nil {
+func HandleStepOutput(ctx context.Context, cmd *exec.Cmd, t *testStatus, exitCode int, err error, output string) StepResult {
+	if err != nil {
 		var exit *exec.ExitError
 		isExit := errors.As(err, &exit)
 		if !isExit {
 			return StepResult{
 				Status: StepStatusFailure,
 				Error:  fmt.Errorf("unexpected error (%w)", err),
-				Output: output.String(),
+				Output: output,
 			}
 		}
 		got := exit.ExitCode()
@@ -115,27 +121,27 @@ func RunAndHandleStepOutput(ctx context.Context, cmd *exec.Cmd, t *testStatus, e
 			return StepResult{
 				Status: StepStatusFailure,
 				Error:  utils.GetContextError(ctxErr),
-				Output: output.String(),
+				Output: output,
 			}
 		}
 		if got != exitCode {
 			return StepResult{
 				Status: StepStatusFailure,
 				Error:  unexpectedExitCode(exitCode, got),
-				Output: output.String(),
+				Output: output,
 			}
 		}
 	} else if exitCode != 0 {
 		return StepResult{
 			Status: StepStatusFailure,
 			Error:  unexpectedExitCode(exitCode, 0),
-			Output: output.String(),
+			Output: output,
 		}
 	}
 
 	return StepResult{
 		Status: StepStatusSuccess,
-		Output: output.String(),
+		Output: output,
 	}
 }
 
