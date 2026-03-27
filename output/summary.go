@@ -26,7 +26,7 @@ func SummaryTable(data []SummaryItem) string {
 	keyFormat := fmt.Sprintf("%%-%ds", maxKeyLen(data)+1)
 	var out strings.Builder
 	for _, i := range data {
-		out.WriteString(fmt.Sprintf("%s %s\n", text.Bold.Sprintf(keyFormat, i.Key+":"), i.Value))
+		fmt.Fprintf(&out, "%s %s\n", text.Bold.Sprintf(keyFormat, i.Key+":"), i.Value)
 	}
 
 	return out.String()

@@ -194,7 +194,7 @@ func getFailureDetails(test TestResult) string {
 	}
 	for i, res := range test.Results {
 		if err := res.Error; err != nil {
-			details.WriteString(fmt.Sprintf("\n\nStep %d: %s", i+1, err.Error()))
+			fmt.Fprintf(&details, "\n\nStep %d: %s", i+1, err.Error())
 
 			if res.Output != "" {
 				details.WriteString("\n\nOutput:\n\n")
@@ -203,11 +203,11 @@ func getFailureDetails(test TestResult) string {
 		}
 	}
 
-	details.WriteString(fmt.Sprintf("\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount))
+	fmt.Fprintf(&details, "\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount)
 
 	skippedCount := test.SkippedCount()
 	if skippedCount > 0 {
-		details.WriteString(fmt.Sprintf(" (%d skipped)", skippedCount))
+		fmt.Fprintf(&details, " (%d skipped)", skippedCount)
 	}
 
 	return details.String()
@@ -253,9 +253,7 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 	if params.OutputToTerminal {
 		// Wait for the progress message to render before starting execution, to ensure step output is logged after the step started message.
 		testLog.WaitForRender()
-	}
 
-	if params.OutputToTerminal {
 		setParamWriters(&params, path)
 	}
 
@@ -296,10 +294,10 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 func setParamWriters(params *TestParameters, key string) {
 	params.StdoutWriter = &PrefixWriter{
-		prefix:     "out",
+		prefix: "out",
 	}
 	params.StderrWriter = &PrefixWriter{
-		prefix:     "err",
+		prefix: "err",
 	}
 }
 
