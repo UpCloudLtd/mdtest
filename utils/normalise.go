@@ -86,9 +86,9 @@ func transformOptions(options Options, transforms map[string]string, quoteValues
 	for key, value := range options {
 		if newKey := transforms[key]; newKey != "" {
 			if value != nil {
-				output.WriteString(fmt.Sprintf(" %s=%s", newKey, quoteValue(*value, quoteValues)))
+				fmt.Fprintf(&output, " %s=%s", newKey, quoteValue(*value, quoteValues))
 			} else {
-				output.WriteString(fmt.Sprintf(" %s", newKey))
+				fmt.Fprintf(&output, " %s", newKey)
 			}
 		}
 	}

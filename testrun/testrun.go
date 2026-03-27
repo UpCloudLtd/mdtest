@@ -17,12 +17,13 @@ import (
 )
 
 type RunParameters struct {
-	Env          []string
-	JUnitXML     string
-	Name         string
-	NumberOfJobs int
-	OutputTarget io.Writer
-	Timeout      time.Duration
+	Env              []string
+	JUnitXML         string
+	Name             string
+	NumberOfJobs     int
+	OutputTarget     io.Writer
+	Timeout          time.Duration
+	OutputToTerminal bool
 }
 
 type RunResult struct {
@@ -92,7 +93,10 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 
 	paths, warnings := utils.ParseFilePaths(rawPaths, 1)
 
-	testLog := progress.NewProgress(nil)
+	config := progress.GetDefaultOutputConfig()
+	config.DisableAnimations = params.OutputToTerminal
+
+	testLog := progress.NewProgress(config)
 	testLog.Start()
 
 	// Handle possible interrupts during execution

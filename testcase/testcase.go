@@ -2,8 +2,10 @@ package testcase
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,11 +75,14 @@ func NewTestStatus(params TestParameters) testStatus {
 }
 
 type TestParameters struct {
-	EnvOverride []string
-	JobID       int
-	RunID       string
-	TestID      string
-	TestLog     *progress.Progress
+	EnvOverride      []string
+	JobID            int
+	RunID            string
+	TestID           string
+	TestLog          *progress.Progress
+	OutputToTerminal bool
+	StdoutWriter     io.Writer
+	StderrWriter     io.Writer
 }
 
 type TestResult struct {
@@ -94,6 +99,34 @@ type TestResult struct {
 
 func (t TestResult) SkippedCount() int {
 	return t.StepsCount - t.SuccessCount - t.FailureCount
+}
+
+type PrefixWriter struct {
+	prefix string
+	buf    []byte
+	target io.Writer
+}
+
+func (w *PrefixWriter) Write(p []byte) (n int, err error) {
+	if w.target == nil {
+		w.target = os.Stderr
+	}
+
+	w.buf = append(w.buf, p...)
+
+	for {
+		i := bytes.IndexByte(w.buf, '\n')
+		if i == -1 {
+			break
+		}
+
+		line := w.buf[:i+1]
+		w.buf = w.buf[i+1:]
+
+		fmt.Fprintf(w.target, "%s: %s", w.prefix, line)
+	}
+
+	return len(p), nil
 }
 
 func parse(path string) (string, []Step, error) {
@@ -161,7 +194,7 @@ func getFailureDetails(test TestResult) string {
 	}
 	for i, res := range test.Results {
 		if err := res.Error; err != nil {
-			details.WriteString(fmt.Sprintf("\n\nStep %d: %s", i+1, err.Error()))
+			fmt.Fprintf(&details, "\n\nStep %d: %s", i+1, err.Error())
 
 			if res.Output != "" {
 				details.WriteString("\n\nOutput:\n\n")
@@ -170,11 +203,11 @@ func getFailureDetails(test TestResult) string {
 		}
 	}
 
-	details.WriteString(fmt.Sprintf("\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount))
+	fmt.Fprintf(&details, "\n\n%d of %d test steps failed", test.FailureCount, test.StepsCount)
 
 	skippedCount := test.SkippedCount()
 	if skippedCount > 0 {
-		details.WriteString(fmt.Sprintf(" (%d skipped)", skippedCount))
+		fmt.Fprintf(&details, " (%d skipped)", skippedCount)
 	}
 
 	return details.String()
@@ -217,6 +250,13 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
+	if params.OutputToTerminal {
+		// Wait for the progress message to render before starting execution, to ensure step output is logged after the step started message.
+		testLog.WaitForRender()
+
+		setParamWriters(&params, path)
+	}
+
 	test := TestResult{
 		Name:       name,
 		Started:    started,
@@ -237,14 +277,8 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 
 		res := step.Execute(ctx, &status)
 		test.Results = append(test.Results, res)
-		switch res.Status {
-		case StepStatusSuccess:
-			test.SuccessCount++
-		case StepStatusFailure:
-			test.FailureCount++
-		case StepStatusSkipped:
-			// No action
-		}
+
+		updateTestStatusCounters(&test, res)
 	}
 
 	test.Finished = time.Now()
@@ -256,4 +290,24 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 		_ = testLog.Push(messages.Update{Key: path, Status: messages.MessageStatusError, Details: getFailureDetails(test)})
 	}
 	return test
+}
+
+func setParamWriters(params *TestParameters, key string) {
+	params.StdoutWriter = &PrefixWriter{
+		prefix: "out",
+	}
+	params.StderrWriter = &PrefixWriter{
+		prefix: "err",
+	}
+}
+
+func updateTestStatusCounters(test *TestResult, stepRes StepResult) {
+	switch stepRes.Status {
+	case StepStatusSuccess:
+		test.SuccessCount++
+	case StepStatusFailure:
+		test.FailureCount++
+	case StepStatusSkipped:
+		// No action
+	}
 }
