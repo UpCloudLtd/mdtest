@@ -4,10 +4,12 @@ on:
   pull_request:
     paths:
       - '.github/actions/setup-mdtest/**'
+      - '.github/workflows/test-action.yml'
   push:
     branches: [main]
     paths:
       - '.github/actions/setup-mdtest/**'
+      - '.github/workflows/test-action.yml'
 
 jobs:
   test:
