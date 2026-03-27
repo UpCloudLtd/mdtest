@@ -1,8 +1,8 @@
 # Real-time output streaming
 
-Test output can be streamed live using the `--ouput-to-terminal` flag, demonstrating the whole output of an `sh` script block for even more fine-tuned debugging.
+Output from `sh` blocks is not logged to terminal by default. To print the output to terminal in real-time as the test is running, use the `--output-to-terminal` flag. The real-time output can be useful, for example, when debugging a test that might get stuck or when you want to see the progress of a long-running test.
 
-Make sure to run the examples using `./bin/mdtest --output-to-terminal --jobs=1 examples/`, otherwise live output will not be visible.
+Real-time terminal output is only available when running tests non-concurrently either by targeting a single test file or by setting `--jobs=1` when running multiple tests. For example, to see the output of below script in real-time, use either `mdtest --output-to-terminal --jobs=1 examples/` or `mdtest --output-to-terminal examples/08_real_time_output.md` commands to run the example(s).
 
 ```sh
 # Simulate a process that might get stuck
