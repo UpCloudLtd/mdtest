@@ -3,7 +3,7 @@ module github.com/UpCloudLtd/mdtest
 go 1.24
 
 require (
-	github.com/UpCloudLtd/progress v1.1.0
+	github.com/UpCloudLtd/progress v1.1.1-0.20260327124230-b279abf6c601
 	github.com/google/cel-go v0.27.0
 	github.com/jedib0t/go-pretty/v6 v6.6.9
 	github.com/spf13/cobra v1.10.2

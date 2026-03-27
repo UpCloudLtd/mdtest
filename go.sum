@@ -1,7 +1,7 @@
 cel.dev/expr v0.25.1 h1:1KrZg61W6TWSxuNZ37Xy49ps13NUovb66QLprthtwi4=
 cel.dev/expr v0.25.1/go.mod h1:hrXvqGP6G6gyx8UAHSHJ5RGk//1Oj5nXQ2NI02Nrsg4=
-github.com/UpCloudLtd/progress v1.1.0 h1:RT2DNMlvJy1R8WZr2dKdDgR+xD1+3+UdZauIfWr2q2w=
-github.com/UpCloudLtd/progress v1.1.0/go.mod h1:iGxOnb9HvHW0yrLGUjHr0lxHhn7TehgWwh7a8NqK6iQ=
+github.com/UpCloudLtd/progress v1.1.1-0.20260327124230-b279abf6c601 h1:LHGdso1FJ7di5mI4UFJ/QQc2IGIkk+2o13HdFUxprPI=
+github.com/UpCloudLtd/progress v1.1.1-0.20260327124230-b279abf6c601/go.mod h1:iGxOnb9HvHW0yrLGUjHr0lxHhn7TehgWwh7a8NqK6iQ=
 github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYWrPrQ=
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/bradleyjkemp/cupaloy/v2 v2.8.0 h1:any4BmKE+jGIaMpnU8YgH/I2LPiLBufr6oMMlVBbn9M=

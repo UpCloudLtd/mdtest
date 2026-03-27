@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/UpCloudLtd/mdtest/globals"
@@ -105,11 +104,14 @@ func (t TestResult) SkippedCount() int {
 type PrefixWriter struct {
 	prefix string
 	buf    []byte
-
-	handleLine func(prefix, line string)
+	target io.Writer
 }
 
 func (w *PrefixWriter) Write(p []byte) (n int, err error) {
+	if w.target == nil {
+		w.target = os.Stderr
+	}
+
 	w.buf = append(w.buf, p...)
 
 	for {
@@ -121,24 +123,10 @@ func (w *PrefixWriter) Write(p []byte) (n int, err error) {
 		line := w.buf[:i+1]
 		w.buf = w.buf[i+1:]
 
-		w.handleLine(w.prefix, string(line))
+		fmt.Fprintf(w.target, "%s: %s", w.prefix, line)
 	}
 
 	return len(p), nil
-}
-
-func handleLine(key string, progress *progress.Progress) func(prefix, line string) {
-	var nextID atomic.Int64
-	return func(prefix, line string) {
-		i := nextID.Add(1)
-		idKey := fmt.Sprintf("%s%d", key, i)
-
-		_ = progress.Push(messages.Update{
-			Key:     idKey,
-			Message: fmt.Sprintf("%s [%s]: %s", prefix, key, line),
-			Status:  messages.MessageStatusSuccess,
-		})
-	}
 }
 
 func parse(path string) (string, []Step, error) {
@@ -263,6 +251,11 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 	_ = testLog.Push(messages.Update{Key: path, Message: fmt.Sprintf("Running %s", path)})
 
 	if params.OutputToTerminal {
+		// Wait for the progress message to render before starting execution, to ensure step output is logged after the step started message.
+		testLog.WaitForRender()
+	}
+
+	if params.OutputToTerminal {
 		setParamWriters(&params, path)
 	}
 
@@ -304,11 +297,9 @@ func Execute(ctx context.Context, path string, params TestParameters) TestResult
 func setParamWriters(params *TestParameters, key string) {
 	params.StdoutWriter = &PrefixWriter{
 		prefix:     "out",
-		handleLine: handleLine(key, params.TestLog),
 	}
 	params.StderrWriter = &PrefixWriter{
 		prefix:     "err",
-		handleLine: handleLine(key, params.TestLog),
 	}
 }
 

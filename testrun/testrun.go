@@ -93,7 +93,10 @@ func Execute(rawPaths []string, params RunParameters) RunResult {
 
 	paths, warnings := utils.ParseFilePaths(rawPaths, 1)
 
-	testLog := progress.NewProgress(nil)
+	config := progress.GetDefaultOutputConfig()
+	config.DisableAnimations = params.OutputToTerminal
+
+	testLog := progress.NewProgress(config)
 	testLog.Start()
 
 	// Handle possible interrupts during execution
