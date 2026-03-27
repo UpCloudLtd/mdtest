@@ -97,14 +97,14 @@ func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
 		}
 
 		err = cmd.Wait()
-		return HandleStepOutput(ctx, cmd, t, s.exitCode, err, output.String())
+		return handleStepOutput(ctx, cmd, t, s.exitCode, err, output.String())
 	} else {
 		output, err := cmd.CombinedOutput()
-		return HandleStepOutput(ctx, cmd, t, s.exitCode, err, string(output))
+		return handleStepOutput(ctx, cmd, t, s.exitCode, err, string(output))
 	}
 }
 
-func HandleStepOutput(ctx context.Context, cmd *exec.Cmd, t *testStatus, exitCode int, err error, output string) StepResult {
+func handleStepOutput(ctx context.Context, cmd *exec.Cmd, t *testStatus, exitCode int, err error, output string) StepResult {
 	if err != nil {
 		var exit *exec.ExitError
 		isExit := errors.As(err, &exit)
