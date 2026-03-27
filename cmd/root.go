@@ -40,7 +40,7 @@ func init() {
 			files, _ := utils.ParseFilePaths(args, 1)
 			if len(files) > 1 {
 				cmd.SilenceUsage = true
-				return fmt.Errorf("--output-to-terminal cannot be used when running tests in parallel. Please set --jobs=1 or target a single test file when using --output-to-terminal flag. Currently --jobs is set to %d and targeting %d files.", numberOfJobs, len(files))
+				return fmt.Errorf("--output-to-terminal cannot be used when running tests in parallel. Please set --jobs=1 or target a single test file when using --output-to-terminal flag. Currently --jobs is set to %d and targeting %d files", numberOfJobs, len(files))
 			}
 		}
 
