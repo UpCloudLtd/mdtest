@@ -77,6 +77,8 @@ linters:
               desc: use stdlib instead
     errcheck:
       check-type-assertions: true
+    goconst:
+      ignore-tests: true
     gocritic:
       disabled-checks:
         - commentFormatting

@@ -11,6 +11,7 @@ on:
       - "go.mod"
       - "go.sum"
       - ".github/workflows/test.yml"
+      - ".golangci.yml"
       - "Makefile"
 
 jobs:
