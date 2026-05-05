@@ -15,6 +15,7 @@ CLI_BIN              = mdtest$(EXT)
 
 .PHONY: build
 build: $(BIN_DIR)
+	CGO_ENABLED=0 \
 	$(GO) build \
 		-tags release \
 		-ldflags '-X $(MODULE)/globals.Version=$(VERSION) -X $(MODULE)/globals.BuildDate=$(DATE)' \
