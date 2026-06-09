@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"os"
 	"regexp"
@@ -55,6 +56,11 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 	var output strings.Builder
 	var warnings []string
 
+	var writer io.Writer = &output
+	if t.Params.OutputToTerminal {
+		writer = io.MultiWriter(&output, safeWriter(t.Params.StderrWriter))
+	}
+
 	for _, line := range s.envUpdates {
 		trimmed := strings.TrimSpace(line)
 
@@ -65,11 +71,11 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 
 		// Skip comments after adding them to output
 		if strings.HasPrefix(trimmed, "#") {
-			output.WriteString(fmt.Sprintf("%s\n", trimmed))
+			fmt.Fprintf(writer, "%s\n", trimmed)
 			continue
 		}
 
-		output.WriteString(fmt.Sprintf("+ %s\n", trimmed))
+		fmt.Fprintf(writer, "+ %s\n", trimmed)
 
 		parts := strings.SplitN(trimmed, "=", 2)
 		if whitespaceRe.MatchString(parts[0]) {
@@ -78,7 +84,7 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 
 		if len(parts) < 2 {
 			envUpdates = append(envUpdates, trimmed)
-			output.WriteString(fmt.Sprintf("%s=", parts[0]))
+			fmt.Fprintf(writer, "%s=", parts[0])
 			continue
 		}
 
@@ -89,7 +95,7 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 		envUpdate := fmt.Sprintf("%s=%s", parts[0], value)
 
 		envUpdates = append(envUpdates, envUpdate)
-		output.WriteString(fmt.Sprintln(envUpdate))
+		fmt.Fprintf(writer, "%s\n", envUpdate)
 	}
 
 	t.Env[EnvSourceTestcase] = append(t.Env[EnvSourceTestcase], envUpdates...)
