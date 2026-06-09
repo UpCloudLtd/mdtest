@@ -21,24 +21,36 @@ var _ Step = envStep{}
 
 var (
 	whitespaceRe  = regexp.MustCompile(`\s`)
-	singlequoteRe = regexp.MustCompile(`^'[^']*'$`)
+	singlequoteRe = regexp.MustCompile(`^'.*'$`)
 	doublequoteRe = regexp.MustCompile(`^".*"$`)
+	innerQuotesRe = regexp.MustCompile(`(^"(.*".*)+"$)|(^'(.*'.*)'$)|(^[^'"](.*['"].*)+[^'"]$)`)
+	commentRe     = regexp.MustCompile(`\s+#.*`)
 )
 
-func parseValue(value string, env EnvBySource, envUpdates []string) (string, error) {
-	var err error
+func parseValue(value string, env EnvBySource, envUpdates []string) (string, []error) {
+	var errs []error
+
+	// Check if value contains inner quotes as these are maintained by default (unlike in shell).
+	if innerQuotesRe.MatchString(value) {
+		errs = append(errs, errors.New("variable values with inner quotes should be quoted"))
+	}
 
 	// Do not expand variables in single quotes, but remove the quotes
 	if singlequoteRe.MatchString(value) {
-		return value[1 : len(value)-1], nil
+		return value[1 : len(value)-1], errs
 	}
 
 	// Remove double quotes
 	if doublequoteRe.MatchString(value) {
 		value = value[1 : len(value)-1]
-	} else if whitespaceRe.MatchString(value) {
-		// Return an error (with the parsed value) if unquoted value contains whitespace, as it would fail when executed in shell. The error is shown as a warning in the test output.
-		err = errors.New("variable values that contain whitespace should be quoted")
+	} else {
+		// Remove comments from unquoted values
+		value = commentRe.ReplaceAllString(value, "")
+
+		if whitespaceRe.MatchString(value) {
+			// Return an error (with the parsed value) if unquoted value contains whitespace, as it would fail when executed in shell. The error is shown as a warning in the test output.
+			errs = append(errs, errors.New("variable values that contain whitespace should be quoted"))
+		}
 	}
 
 	// Expand variables in unquoted and double-quoted values
@@ -48,7 +60,7 @@ func parseValue(value string, env EnvBySource, envUpdates []string) (string, err
 
 		m := utils.EnvEntriesAsMap(env.Merge())
 		return m[key]
-	}), err
+	}), errs
 }
 
 func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
@@ -88,9 +100,11 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 			continue
 		}
 
-		value, err := parseValue(parts[1], t.Env, envUpdates)
-		if err != nil {
-			warnings = append(warnings, fmt.Sprintf(`%s: %s`, err.Error(), trimmed))
+		value, errs := parseValue(parts[1], t.Env, envUpdates)
+		if len(errs) > 0 {
+			for _, err := range errs {
+				warnings = append(warnings, fmt.Sprintf(`%s: %s`, err.Error(), trimmed))
+			}
 		}
 		envUpdate := fmt.Sprintf("%s=%s", parts[0], value)
 

@@ -257,7 +257,7 @@ func getWarningDetails(test TestResult) string {
 	details.WriteString("Warnings:\n")
 	for i, res := range test.Results {
 		for _, warn := range res.Warnings {
-			details.WriteString(fmt.Sprintf("\nStep %d: %s", i+1, warn))
+			fmt.Fprintf(&details, "\nStep %d: %s", i+1, warn)
 		}
 	}
 	return details.String()
