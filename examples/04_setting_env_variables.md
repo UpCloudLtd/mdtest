@@ -41,24 +41,24 @@ test "$SINGLE_QUOTED" = '${COLOR}-${FRUIT}'
 test "$DOUBLE_QUOTED" = "red-apple"
 ```
 
-Use `#` character at the beginning of a line to add comments to `env` code block.
+Use `#` character at the beginning of a line (or preceded by whitespace) to add comments to `env` code block.
 
 ```env
 # This is a comment
 #commented=value
 
 COLOR=#7b00ff
-MESSAGE=Enjoying life #blessed
-QUOTED_MESSAGE="Enjoying life #blessed"
+WITH_COMMENT=value #comment
+WITH_HASHTAG="Enjoying life #blessed"
 ```
 
-The first two lines in the above code block are ignored, so `commented` variable is not defined in following test steps. A `#` character preceded by whitespace starts a comment when it is not quoted.
+The first two lines in the above code block are ignored, so `commented` variable is not defined in following test steps.
 
 ```sh
 test -z "$commented"
 test "$COLOR" = "#7b00ff"
-test "$MESSAGE" = "Enjoying life"
-test "$QUOTED_MESSAGE" = "Enjoying life #blessed"
+test "$WITH_COMMENT" = "value"
+test "$WITH_HASHTAG" = "Enjoying life #blessed"
 ```
 
 ## Variable precedence
