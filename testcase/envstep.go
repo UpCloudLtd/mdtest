@@ -87,7 +87,7 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 			continue
 		}
 
-		fmt.Fprintf(writer, "+ %s\n", trimmed)
+		fmt.Fprintf(writer, "# %s\n", trimmed)
 
 		parts := strings.SplitN(trimmed, "=", 2)
 		if whitespaceRe.MatchString(parts[0]) {
@@ -96,7 +96,7 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 
 		if len(parts) < 2 {
 			envUpdates = append(envUpdates, trimmed)
-			fmt.Fprintf(writer, "%s=", parts[0])
+			fmt.Fprintf(writer, "+ %s=", parts[0])
 			continue
 		}
 
@@ -109,7 +109,7 @@ func (s envStep) Execute(_ context.Context, t *testStatus) StepResult {
 		envUpdate := fmt.Sprintf("%s=%s", parts[0], value)
 
 		envUpdates = append(envUpdates, envUpdate)
-		fmt.Fprintf(writer, "%s\n", envUpdate)
+		fmt.Fprintf(writer, "+ %s\n", envUpdate)
 	}
 
 	t.Env[EnvSourceTestcase] = append(t.Env[EnvSourceTestcase], envUpdates...)
