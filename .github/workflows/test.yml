@@ -53,4 +53,4 @@ jobs:
       - name: Test examples
         run: |
           ./bin/mdtest version
-          ./bin/mdtest examples/
+          ./bin/mdtest --warnings-as-errors examples/

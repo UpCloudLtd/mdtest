@@ -33,5 +33,5 @@ To build the application and execute the tests in [examples/](./examples/) direc
 
 ```sh
 make
-./bin/mdtest examples/
+./bin/mdtest --warnings-as-errors examples/
 ```

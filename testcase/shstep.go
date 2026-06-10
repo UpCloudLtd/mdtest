@@ -28,13 +28,6 @@ func (s shStep) shParams() string {
 	return "-xec"
 }
 
-func safeWriter(w io.Writer) io.Writer {
-	if w == nil {
-		return io.Discard
-	}
-	return w
-}
-
 func unexpectedExitCode(expected, got int) error {
 	return fmt.Errorf("expected exit code %d, got %d", expected, got)
 }
