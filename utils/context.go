@@ -13,11 +13,11 @@ var _ error = CanceledError("")
 func (e CanceledError) Error() string {
 	switch e {
 	case CanceledError("timeout"):
-		return "test run timeout exceeded"
+		return "test timeout exceeded"
 	case CanceledError("interrupt"):
-		return "test run was canceled with interrupt signal"
+		return "testrun was canceled with interrupt signal"
 	default:
-		return "test run was canceled"
+		return "testrun was canceled"
 	}
 }
 

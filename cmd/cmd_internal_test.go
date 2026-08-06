@@ -13,6 +13,7 @@ import (
 )
 
 func testdataExpectedJUnitXML() string {
+	stepTimeoutFailure := "\n    <failure>test timeout exceeded</failure>"
 	timeoutExitCodeFailure := ""
 	xEchoCommandWithQuotes := "+ echo &#39;Environment variable VAR is set to VALUE&#39;"
 	if runtime.GOOS == "linux" {
@@ -20,10 +21,11 @@ func testdataExpectedJUnitXML() string {
 	}
 	if runtime.GOOS == "windows" {
 		timeoutExitCodeFailure = "\n    <failure>expected exit code 0, got 3221225786</failure>"
+		stepTimeoutFailure = timeoutExitCodeFailure
 	}
 
 	// The warn_* tests fail because --jobs is set to 1 and they are executed after the timeout test file.
-	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="11" failures="7" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
+	return fmt.Sprintf(`<testsuite name="Test JUnit XML output" tests="12" failures="8" errors="1" skipped="0" time="ELAPSED" timestamp="STARTED">
   <testcase classname="Test JUnit XML output" name="Fail: expected 0, got 3" time="ELAPSED">
     <failure>expected exit code 0, got 3</failure>
     <system-out># Step 1:&#xA;+ exit 3&#xA;</system-out>
@@ -34,6 +36,9 @@ func testdataExpectedJUnitXML() string {
   </testcase>
   <testcase classname="Test JUnit XML output" name="Fail: invalid test step">
     <error>could not parse test step (unexpected EOF)</error>
+  </testcase>
+  <testcase classname="Test JUnit XML output" name="Fail: step timeout" time="ELAPSED">%s
+    <system-out># Step 1:&#xA;+ sleep 1&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Fail: test environment variable values" time="ELAPSED">
     <failure>expected exit code 0, got 1</failure>
@@ -55,18 +60,18 @@ func testdataExpectedJUnitXML() string {
     <system-out># Step 1:&#xA;+ exit 0&#xA;# Step 2:&#xA;# Skipped&#xA;# Step 3:&#xA;# VAR=VALUE&#xA;+ VAR=VALUE&#xA;# Step 4:&#xA;%s&#xA;Environment variable VAR is set to VALUE&#xA;# Step 5:&#xA;# Skipped&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Sleep" time="ELAPSED">
-    <failure>test run timeout exceeded</failure>%s
+    <failure>test timeout exceeded</failure>%s
     <system-out># Step 1:&#xA;+ sleep 600&#xA;# Step 2:&#xA;# Skipped&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Warn: variable key should not contain whitespace" time="ELAPSED">
-    <failure>test run timeout exceeded</failure>
+    <failure>test timeout exceeded</failure>
     <system-out># Step 1:&#xA;# VAR with whitespace=value&#xA;+ VAR with whitespace=value&#xA;# Warning: variable key should not contain whitespace: VAR with whitespace=value&#xA;</system-out>
   </testcase>
   <testcase classname="Test JUnit XML output" name="Warn: variable values that contain whitespace should be quoted" time="ELAPSED">
-    <failure>test run timeout exceeded</failure>
+    <failure>test timeout exceeded</failure>
     <system-out># Step 1:&#xA;# VAR=Value with whitespace&#xA;+ VAR=Value with whitespace&#xA;# Warning: variable values that contain whitespace should be quoted: VAR=Value with whitespace&#xA;</system-out>
   </testcase>
-</testsuite>`, xEchoCommandWithQuotes, timeoutExitCodeFailure)
+</testsuite>`, stepTimeoutFailure, xEchoCommandWithQuotes, timeoutExitCodeFailure)
 }
 
 func readJUnitXML(t *testing.T, path string) string {
@@ -116,7 +121,7 @@ func TestRoot_testdata(t *testing.T) {
 		},
 		{
 			testPath:  "../testdata",
-			exitCode:  8,
+			exitCode:  9,
 			extraArgs: []string{"--name", "Test JUnit XML output"},
 			junitXML:  testdataExpectedJUnitXML(),
 		},
