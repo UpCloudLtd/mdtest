@@ -6,6 +6,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/UpCloudLtd/progress/messages"
 )
@@ -91,6 +92,14 @@ func (o Options) GetBoolean(key string) bool {
 
 	// Option set with a value, e.g. "cleanup=true"
 	return strings.EqualFold(*val, "true")
+}
+
+func (o Options) GetDuration(key string) (time.Duration, error) {
+	val := o[key]
+	if val == nil {
+		return 0, nil
+	}
+	return time.ParseDuration(*val) //nolint:wrapcheck // Wrap error in the caller to include option name in the error message
 }
 
 func splitOptions(optionsStr string) []string {

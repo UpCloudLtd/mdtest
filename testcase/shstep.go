@@ -8,6 +8,7 @@ import (
 	"io"
 	"os/exec"
 	"strconv"
+	"time"
 
 	"github.com/UpCloudLtd/mdtest/utils"
 )
@@ -16,6 +17,7 @@ type shStep struct {
 	script   string
 	cleanup  bool
 	when     string
+	timeout  time.Duration
 	exitCode int
 }
 
@@ -67,6 +69,12 @@ func (s shStep) Execute(ctx context.Context, t *testStatus) StepResult {
 		return StepResult{
 			Status: StepStatusSkipped,
 		}
+	}
+
+	if s.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.timeout)
+		defer cancel()
 	}
 
 	cmd := exec.CommandContext(ctx, "sh", s.shParams(), s.script) //nolint:gosec // Here we trust that the user knows what their tests do
@@ -147,5 +155,10 @@ func parseShStep(options utils.Options, content string) (Step, error) {
 	cleanup := options.GetBoolean("cleanup")
 	when := options.GetString("when")
 
-	return shStep{script: content, cleanup: cleanup, exitCode: exitCode, when: when}, nil
+	timeout, err := options.GetDuration("timeout")
+	if err != nil {
+		return nil, fmt.Errorf("invalid timeout value: %w", err)
+	}
+
+	return shStep{script: content, cleanup: cleanup, exitCode: exitCode, when: when, timeout: timeout}, nil
 }
