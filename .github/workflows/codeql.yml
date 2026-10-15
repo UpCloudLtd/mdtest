@@ -39,6 +39,6 @@ jobs:
           build-mode: ${{ matrix.language == 'go' && 'manual' || 'none' }}
       - run: make build
         if: matrix.language == 'go'
-      - uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           category: /language:${{ matrix.language }}
